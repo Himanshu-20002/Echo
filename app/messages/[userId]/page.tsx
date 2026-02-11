@@ -140,23 +140,10 @@ export default function ConversationPage() {
         <Card className="flex-1 flex flex-col overflow-hidden">
           <CardHeader className="border-b">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {otherUser.photoURL && (
-                  <img
-                    src={otherUser.photoURL || "/placeholder.svg"}
-                    alt={otherUser.displayName}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                )}
-                <CardTitle>{otherUser.displayName}</CardTitle>
+              <div className="flex items-center gap-3"> {otherUser.photoURL && (<img src={otherUser.photoURL || "/placeholder.svg"} alt={otherUser.displayName} className="w-10 h-10 rounded-full object-cover" />)}
+                <CardTitle>{otherUser.displayName}</CardTitle> </div> <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => router.push('/home')} > Home </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/messages')}
-              >
-                Back
-              </Button>
             </div>
           </CardHeader>
 
@@ -171,13 +158,13 @@ export default function ConversationPage() {
                 const time =
                   msg.timestamp instanceof Date
                     ? msg.timestamp.toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
                     : new Date(msg.timestamp).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      });
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
 
                 return (
                   <div
@@ -185,17 +172,15 @@ export default function ConversationPage() {
                     className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3`}
                   >
                     <div
-                      className={`max-w-xs px-4 py-2 rounded-lg ${
-                        isOwn
-                          ? 'bg-blue-500 text-white rounded-br-none'
-                          : 'bg-muted text-foreground rounded-bl-none'
-                      }`}
+                      className={`max-w-xs px-4 py-2 rounded-lg ${isOwn
+                        ? 'bg-blue-500 text-white rounded-br-none'
+                        : 'bg-muted text-foreground rounded-bl-none'
+                        }`}
                     >
                       <p className="text-sm break-words">{msg.content || msg.text}</p>
                       <p
-                        className={`text-xs mt-1 ${
-                          isOwn ? 'text-blue-100' : 'text-muted-foreground'
-                        }`}
+                        className={`text-xs mt-1 ${isOwn ? 'text-blue-100' : 'text-muted-foreground'
+                          }`}
                       >
                         {time}
                       </p>

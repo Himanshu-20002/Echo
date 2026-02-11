@@ -11,9 +11,16 @@ import {
   serverTimestamp,
   orderBy,
   onSnapshot,
+  limit,
+  increment,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserProfile, Message, Conversation } from './types';
+import { UserProfile, Message, Conversation, MoodType } from './types';
+
+// Simple in-memory cache to reduce reads
+const profileCache: Record<string, UserProfile> = {};
+const matchCache: Record<string, string[]> = {};
 
 export async function createUserProfile(
   profile: Omit<UserProfile, 'createdAt'>,
@@ -23,9 +30,16 @@ export async function createUserProfile(
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  if (profileCache[uid]) return profileCache[uid];
+
   const docRef = doc(db, 'users', uid);
   const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? (docSnap.data() as UserProfile) : null;
+  if (docSnap.exists()) {
+    const profile = { uid: docSnap.id, ...docSnap.data() } as UserProfile;
+    profileCache[uid] = profile;
+    return profile;
+  }
+  return null;
 }
 
 export async function updateUserProfile(
@@ -145,7 +159,7 @@ export async function sendMessage(
       recipientId,
     );
     console.log('[v0] sendMessage - Conversation ID:', conversationId);
-    
+
     const messageRef = collection(
       db,
       'conversations',
@@ -181,7 +195,7 @@ export async function getConversationMessages(
   try {
     const conversationId = [userId, otherUserId].sort().join('_');
     console.log('[v0] getConversationMessages - Conversation ID:', conversationId);
-    
+
     const messageRef = collection(
       db,
       'conversations',
@@ -192,7 +206,7 @@ export async function getConversationMessages(
 
     const querySnapshot = await getDocs(q);
     console.log('[v0] getConversationMessages - Found messages:', querySnapshot.size);
-    
+
     return querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
@@ -267,17 +281,35 @@ export async function getUnreadCount(
 }
 
 export async function getUserMatches(userId: string): Promise<string[]> {
-  const q = query(collection(db, 'likes'), where('userId', '==', userId));
-  const qs = await getDocs(q);
-  const likedByUser = qs.docs.map((doc) => doc.data().likedUserId);
+  if (matchCache[userId]) return matchCache[userId];
 
-  const q2 = query(collection(db, 'likes'), where('userId', '!=', userId));
-  const qs2 = await getDocs(q2);
-  const matches = qs2.docs
-    .filter((doc) => likedByUser.includes(doc.data().userId))
-    .map((doc) => doc.data().userId);
+  try {
+    // 1. Get everyone I liked
+    const myLikesQuery = query(collection(db, 'likes'), where('userId', '==', userId));
+    const myLikesSnap = await getDocs(myLikesQuery);
+    const peopleILiked = myLikesSnap.docs.map((doc) => doc.data().likedUserId);
 
-  return [...new Set(matches)];
+    if (peopleILiked.length === 0) return [];
+
+    // 2. See if any of those people liked ME back
+    const likesMeQuery = query(
+      collection(db, 'likes'),
+      where('likedUserId', '==', userId)
+    );
+    const likesMeSnap = await getDocs(likesMeQuery);
+
+    // 3. Filter for mutual matches
+    const mutualMatches = likesMeSnap.docs
+      .map(doc => doc.data().userId)
+      .filter(likerId => peopleILiked.includes(likerId));
+
+    const finalMatches = [...new Set(mutualMatches)];
+    matchCache[userId] = finalMatches;
+    return finalMatches;
+  } catch (error) {
+    console.error('[v0] getUserMatches - Error:', error);
+    return [];
+  }
 }
 
 // Get pending likes (people who liked current user but current user hasn't liked back)
@@ -286,7 +318,7 @@ export async function getPendingLikes(
 ): Promise<Array<{ userId: string; profile: UserProfile | null }>> {
   try {
     console.log('[v0] getPendingLikes - Starting for user:', userId);
-    
+
     // Get all likes where this user is the liked person
     const likeRef = collection(db, 'likes');
     const q = query(likeRef, where('likedUserId', '==', userId));
@@ -341,14 +373,14 @@ export function subscribeToMessages(
 ): () => void {
   const conversationId = [userId, otherUserId].sort().join('_');
   console.log('[v0] subscribeToMessages - Conversation ID:', conversationId);
-  
+
   const messageRef = collection(
     db,
     'conversations',
     conversationId,
     'messages',
   );
-  const q = query(messageRef, orderBy('timestamp', 'asc'));
+  const q = query(messageRef, orderBy('timestamp', 'asc'), limit(50));
 
   const unsubscribe = onSnapshot(
     q,
@@ -389,4 +421,112 @@ export async function getNotificationsCount(userId: string): Promise<number> {
   ).length;
 
   return pendingCount;
+}
+
+// --- MOOD & LOVE BITE INTEGRATION ---
+
+export async function updateMood(userId: string, mood: MoodType, intensity: number) {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      mood,
+      moodIntensity: intensity,
+      moodUpdatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('[v0] updateMood - Error:', error);
+    throw error;
+  }
+}
+
+export function subscribeToUserMood(userId: string, callback: (data: { mood: MoodType, intensity: number, dailyLoveCount: number }) => void) {
+  const userRef = doc(db, 'users', userId);
+  return onSnapshot(userRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      const today = new Date().toISOString().split('T')[0];
+      // Reset count locally if date is old
+      const effectiveCount = data.lastLoveResetDate === today ? (data.dailyLoveCount || 0) : 0;
+
+      callback({
+        mood: (data.mood as MoodType) || 'calm',
+        intensity: data.moodIntensity || 3,
+        dailyLoveCount: effectiveCount
+      });
+    }
+  }, (error) => {
+    console.error('[v0] subscribeToUserMood - Error:', error);
+  });
+}
+
+export async function sendLoveBite(fromId: string, toId: string) {
+  try {
+    const loveBiteRef = collection(db, 'loveBites');
+    const recipientRef = doc(db, 'users', toId);
+    const today = new Date().toISOString().split('T')[0];
+
+    await runTransaction(db, async (transaction) => {
+      // 1. PERFORM READ FIRST
+      const recipientRef = doc(db, 'users', toId);
+      const userSnap = await transaction.get(recipientRef);
+
+      // 2. NOW PERFORM WRITES
+      // Create the love bite record
+      transaction.set(doc(collection(db, 'loveBites')), {
+        fromId,
+        toId,
+        timestamp: serverTimestamp(),
+      });
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (userData.lastLoveResetDate === today) {
+          transaction.update(recipientRef, {
+            dailyLoveCount: increment(1)
+          });
+        } else {
+          transaction.update(recipientRef, {
+            dailyLoveCount: 1,
+            lastLoveResetDate: today
+          });
+        }
+      }
+    });
+
+    console.log('[v0] sendLoveBite - Transmitted & Updated Daily Count');
+  } catch (error) {
+    console.error('[v0] sendLoveBite - Error:', error);
+    throw error;
+  }
+}
+
+export function subscribeToLoveBites(userId: string, callback: (loveBite: any) => void) {
+  const loveBiteRef = collection(db, 'loveBites');
+  const setupTime = Date.now();
+
+  // Simplified query to avoid index requirement
+  const q = query(
+    loveBiteRef,
+    where('toId', '==', userId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    if (snapshot.empty) return;
+
+    snapshot.docChanges().forEach((change) => {
+      if (change.type === 'added') {
+        const data = change.doc.data();
+        // serverTimestamp() might be null initially on the client due to latency compensation
+        const ts = data.timestamp ? data.timestamp.toMillis() : Date.now();
+
+        // Only trigger for bites added after the component mounted (with a 5s buffer)
+        if (ts > setupTime - 5000) {
+          console.log('[v0] subscribeToLoveBites - New love bite received:', change.doc.id);
+          callback({ id: change.doc.id, ...data });
+        }
+      }
+    });
+  }, (error) => {
+    console.error('[v0] subscribeToLoveBites - Error:', error);
+  });
 }

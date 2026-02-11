@@ -57,7 +57,7 @@ export function ChatInterface({ partnerId: initialPartnerId }: ChatInterfaceProp
         };
 
         findPartner();
-    }, [user, partnerId]);
+    }, [user?.uid, partnerId]);
 
     // Initialize chat when we have user and partnerId
     useEffect(() => {
@@ -100,7 +100,7 @@ export function ChatInterface({ partnerId: initialPartnerId }: ChatInterfaceProp
         } else {
             setIsLoading(false);
         }
-    }, [user, partnerId]);
+    }, [user?.uid, partnerId]);
 
     // Auto-scroll disabled to prevent page jumping
     // Auto-scroll to bottom of chat container only

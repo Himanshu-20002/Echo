@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { ShieldCheck, Activity, Heart, Lock, EyeOff, Timer, Star, LockKeyhole } from 'lucide-react';
 import HeroBackground from './hero-background';
 // import FaultyTerminal from './FaultyTerminal';
 
@@ -24,28 +25,28 @@ export default function LandingPage() {
   return (
     <div className="dark bg-background-dark text-slate-100 w-screen transition-colors duration-500 overflow-x-hidden min-h-screen">
       {/* Subtle Background Glow Elements */}
-     
- {/* <div className="absolute inset-0 opacity-30 overflow-hidden">  
+
+      {/* <div className="absolute inset-0 opacity-30 overflow-hidden">  
         <div className="absolute top-0 left-0 w-96 h-96 bg-red-900 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
         <div className="absolute top-1/2 right-0 w-96 h-96 bg-rose-900 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
         <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-900 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
       </div> */}
 
-      
+
       <div className="relative flex min-h-screen flex-col">
         {/* Top Navigation */}
         <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-6 py-6 lg:px-20">
           <div className="flex w-full max-w-7xl items-center justify-between glass-effect border border-white/10 px-8 py-3 rounded-full">
-           <Image
-                alt="Echo Logo"
-                src="/echo_logo.png"
-                width={62}
-                height={72}
-                />
+            <Image
+              alt="Echo Logo"
+              src="/echo_logo.png"
+              width={62}
+              height={72}
+            />
             <div className="flex items-center gap-3">
-               
+
               <div className="flex h-8 w-8  items-center justify-center rounded-full  text-white">
-               
+
                 {/* <span className="material-symbols-outlined text-[20px] font-bold">Echo</span> */}
               </div>
               {/* <h2 className="text-xl font-bold tracking-tight text-white">Echo</h2> */}
@@ -129,7 +130,7 @@ export default function LandingPage() {
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="flex flex-col items-center gap-6 glass-effect p-12 rounded-xl border border-white/20">
-                    <span className="material-symbols-outlined text-accent-pink text-6xl">lock</span>
+                    <Lock className="text-accent-pink w-16 h-16" />
                     <div className="text-center">
                       <h3 className="text-2xl font-bold text-white mb-2">The Sanctuary</h3>
                       <p className="text-white/60 text-sm">Waiting for your partner to lock...</p>
@@ -155,7 +156,7 @@ export default function LandingPage() {
                   <div className="mt-12 flex flex-col gap-8">
                     <div className="flex gap-6">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent-pink/20 text-accent-pink">
-                        <span className="material-symbols-outlined">verified_user</span>
+                        <ShieldCheck className="w-6 h-6" />
                       </div>
                       <div>
                         <h3 className="text-xl font-bold text-white">Private Sanctuary</h3>
@@ -164,7 +165,7 @@ export default function LandingPage() {
                     </div>
                     <div className="flex gap-6">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent-pink/20 text-accent-pink">
-                        <span className="material-symbols-outlined">hub</span>
+                        <Activity className="w-6 h-6" />
                       </div>
                       <div>
                         <h3 className="text-xl font-bold text-white">Digital Bond</h3>
@@ -177,9 +178,9 @@ export default function LandingPage() {
                   <div className="aspect-square w-full rounded-full border-2 border-dashed border-accent-pink/30 p-8 flex items-center justify-center">
                     <div className="aspect-square w-full rounded-full bg-gradient-to-br from-accent-pink to-background-dark/80 p-1 flex items-center justify-center">
                       <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-surface-dark p-12 text-center">
-                        <span className="material-symbols-outlined text-accent-pink text-5xl mb-4">favorite</span>
+                        <Heart className="text-accent-pink w-12 h-12 mb-4 fill-accent-pink" />
                         <p className="text-2xl font-bold text-white">Locked</p>
-                        <p className="text-white/40 text-sm mt-2">Sarah & James</p>
+                        <p className="text-white/40 text-sm mt-2">nora & James</p>
                       </div>
                     </div>
                   </div>
@@ -201,21 +202,21 @@ export default function LandingPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Card 1 */}
                 <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
-                  <span className="material-symbols-outlined text-accent-pink text-4xl">lock_reset</span>
+                  <LockKeyhole className="text-accent-pink w-10 h-10" />
                   <h3 className="text-2xl font-bold text-white">The Lock</h3>
                   <p className="text-white/50 leading-relaxed font-light">The foundational step. A mutual digital pact that closes the door to outside noise.</p>
                 </div>
 
                 {/* Card 2 */}
                 <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
-                  <span className="material-symbols-outlined text-accent-pink text-4xl">visibility_off</span>
+                  <EyeOff className="text-accent-pink w-10 h-10" />
                   <h3 className="text-2xl font-bold text-white">Privacy First</h3>
                   <p className="text-white/50 leading-relaxed font-light">Encrypted messages and private gallery. Not even we can see what you share.</p>
                 </div>
 
                 {/* Card 3 */}
                 <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
-                  <span className="material-symbols-outlined text-accent-pink text-4xl">history_toggle_off</span>
+                  <Timer className="text-accent-pink w-10 h-10" />
                   <h3 className="text-2xl font-bold text-white">Deep Presence</h3>
                   <p className="text-white/50 leading-relaxed font-light">A shared timeline that focuses on quality interaction rather than quantity.</p>
                 </div>
@@ -228,9 +229,7 @@ export default function LandingPage() {
             <div className="mx-auto max-w-4xl text-center">
               <div className="mb-10 flex justify-center gap-1">
                 {[...Array(5)].map((_, i) => (
-                  <span key={i} className="material-symbols-outlined text-accent-pink text-[24px] fill-current">
-                    star
-                  </span>
+                  <Star key={i} className="text-accent-pink w-6 h-6 fill-accent-pink" />
                 ))}
               </div>
               <blockquote className="text-2xl italic font-light text-white md:text-4xl leading-snug">
@@ -245,7 +244,7 @@ export default function LandingPage() {
                   />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold text-white">Sarah & James</p>
+                  <p className="font-bold text-white">nora & James</p>
                   <p className="text-white/40 text-sm uppercase tracking-widest">March 2024</p>
                 </div>
               </div>
@@ -275,12 +274,12 @@ export default function LandingPage() {
         <footer className="border-t border-white/10 bg-background-dark py-12 px-6">
           <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-3 opacity-50">
-                <Image
+              <Image
                 alt="Echo Logo"
-                src="/echo_logo.png"  
+                src="/echo_logo.png"
                 width={32}
                 height={32}
-                />
+              />
               <span className="text-lg font-bold tracking-tight text-white">Echo</span>
             </div>
             <div className="flex gap-8 text-sm text-white/40">

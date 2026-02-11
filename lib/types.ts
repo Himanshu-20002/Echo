@@ -1,3 +1,5 @@
+export type MoodType = 'love' | 'happy' | 'sad' | 'angry' | 'calm';
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -11,6 +13,10 @@ export interface UserProfile {
   favoriteMusic: string[];
   interests: string[];
   createdAt: Date;
+  mood?: MoodType;
+  moodIntensity?: number;
+  dailyLoveCount?: number;
+  lastLoveResetDate?: string; // YYYY-MM-DD
 }
 
 export interface Message {
@@ -27,4 +33,11 @@ export interface Conversation {
   participants: string[];
   lastMessage?: string;
   lastMessageTime?: Date;
+}
+
+export interface LoveBite {
+  id: string;
+  fromId: string;
+  toId: string;
+  timestamp: Date;
 }

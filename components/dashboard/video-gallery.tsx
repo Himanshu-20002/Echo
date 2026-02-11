@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PlayCircle } from 'lucide-react';
 
 interface Video {
   id: string;
@@ -78,9 +79,7 @@ export function VideoGallery({ videos, onVideoSelect, onAddVideo, onRemoveVideo 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-accent-pink text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-            play_circle
-          </span>
+          <PlayCircle className="text-accent-pink w-5 h-5 fill-accent-pink/20" />
           <h4 className="text-[10px] font-black tracking-widest text-white/40 uppercase">My Core</h4>
         </div>
         <button
@@ -144,7 +143,7 @@ export function VideoGallery({ videos, onVideoSelect, onAddVideo, onRemoveVideo 
                   title="Click to play"
                 >
                   <img
-                    src={`https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`}
+                    src={`https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`}
                     alt={video.title}
                     className="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
                     onError={(e) => {
@@ -163,13 +162,13 @@ export function VideoGallery({ videos, onVideoSelect, onAddVideo, onRemoveVideo 
                 </div>
 
                 {/* Delete Button */}
-                <button
+                {/* <button
                   onClick={() => onRemoveVideo?.(video.id)}
                   className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                   title="Delete video"
                 >
                   <span className="material-symbols-outlined text-sm">close</span>
-                </button>
+                </button> */}
               </div>
             ))}
           </div>

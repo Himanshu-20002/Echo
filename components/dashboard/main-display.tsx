@@ -166,7 +166,7 @@ export function MainDisplay({
 
     return (
         <div
-            className={`glass-panel rounded-2xl border neon-border overflow-hidden transition-all duration-300 flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'h-[850px] mb-8'
+            className={`glass-panel rounded-2xl border neon-border overflow-hidden transition-all duration-300 flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 rounded-none ' : 'h-[750px] mb-8'
                 }`}
         >
             {/* SHARED SPACE HEADER */}
@@ -220,7 +220,7 @@ export function MainDisplay({
                             }`}
                     >
                         <Activity className="w-3.5 h-3.5" />
-                        Heartbeat Graph
+                        Heartbeat
                     </button>
                     <button
                         onClick={() => handleViewModeChange('video')}

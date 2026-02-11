@@ -3,12 +3,13 @@
 import { useAuth } from '@/lib/auth-context';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import HeroBackground from '../hero-background';
 import { VideoGallery } from './video-gallery';
 import { MainDisplay, ViewMode } from './main-display';
 import { PartnerCard } from './partner-card';
 import { LoveBiteOverlay } from './love-bite-overlay';
+import { MoodWindow } from './MoodWindow/mood-window'
 import {
   Phone,
   Video,
@@ -27,7 +28,15 @@ import {
   LogOut
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
+import {
+  updateMood,
+  subscribeToUserMood,
+  sendLoveBite,
+  subscribeToLoveBites,
+  getUserMatches,
+  getUserProfile
+} from '@/lib/firestore-service';
+import { MoodType } from '@/lib/types';
 interface Video {
   id: string;
   videoId: string;
@@ -49,10 +58,22 @@ interface PartnerData {
 
 export function HomeDashboard() {
   const { user, logout } = useAuth();
+  const lastSyncedMood = useRef<{ mood: MoodType; intensity: number } | null>(null);
   const router = useRouter(); // Use useRouter
   const [partnerData, setPartnerData] = useState<PartnerData | null>(null);
   const [syncStrength, setSyncStrength] = useState(98.4);
   const [userBpm, setUserBpm] = useState(72); // Add user BPM state
+  const [userMood, setUserMood] = useState<{ mood: MoodType; intensity: number; dailyLoveCount: number }>({
+    mood: 'love',
+    intensity: 4,
+    dailyLoveCount: 0,
+  })
+
+  const [partnerMood, setPartnerMood] = useState<{ mood: MoodType; intensity: number; dailyLoveCount: number }>({
+    mood: 'love',
+    intensity: 4,
+    dailyLoveCount: 0,
+  })
   const [selectedVideo, setSelectedVideo] = useState({
     videoId: 'ch8pwy-V1E8',
     title: 'Our Connection',
@@ -60,6 +81,9 @@ export function HomeDashboard() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('graph');
 
+  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [userSendingKiss, setUserSendingKiss] = useState(false);
+  const [partnerSendingKiss, setPartnerSendingKiss] = useState(false);
   const [isLoveBiteActive, setIsLoveBiteActive] = useState(false);
   const [activeActions, setActiveActions] = useState<string[]>([]);
 
@@ -119,50 +143,110 @@ export function HomeDashboard() {
 
 
 
+  // Fetch partner data
   useEffect(() => {
-    // Mock partner data - replace with real data from Firestore
-    setPartnerData({
-      name: 'Your Partner',
-      status: 'Calm & Steady',
-      bpm: 72,
-      connectionStrength: 94,
-      intimacyLevel: 88,
-      lastMessage: 'Thinking about our next adventure...',
-      isOnline: true,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBkSXUgY0b5DkrugzoSrDwid1UQG-pa3iigkzdXqVWdgZD1GkBCqFInn_SOJxe6Nwh4H_R30nAu6wbAJ332XV7UEuicwRtLxDFU5AGWWOe84X9oO7acECJ1fAS5ki071CI-paHDZygFil5cc7K5oFCRHcmbhQno7jEGgipOYXaUuTzwDOeNxDXQ55KwZ_68jY_nG6xJIeMgdQLj0s4a73jFunYwJ8yHAcWrTG9uEyDPPcDhNMVg3DSqYEiWby1U2Q83Cxg_8dv4BTev',
-    });
-  }, []);
+    if (!user?.uid || partnerData) return;
 
-  // Simulate real-time data updates
+    const fetchPartner = async () => {
+      try {
+        const matches = await getUserMatches(user.uid);
+        if (matches.length > 0) {
+          const pId = matches[0];
+          setPartnerId(pId);
+          const profile = await getUserProfile(pId);
+          if (profile) {
+            setPartnerData({
+              name: profile.displayName,
+              status: profile.mood ? `Feeling ${profile.mood}` : 'Calm & Steady',
+              bpm: 72,
+              connectionStrength: 94,
+              intimacyLevel: 88,
+              isOnline: true,
+              avatar: profile.photoURL || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBkSXUgY0b5DkrugzoSrDwid1UQG-pa3iigkzdXqVWdgZD1GkBCqFInn_SOJxe6Nwh4H_R30nAu6wbAJ332XV7UEuicwRtLxDFU5AGWWOe84X9oO7acECJ1fAS5ki071CI-paHDZygFil5cc7K5oFCRHcmbhQno7jEGgipOYXaUuTzwDOeNxDXQ55KwZ_68jY_nG6xJIeMgdQLj0s4a73jFunYwJ8yHAcWrTG9uEyDPPcDhNMVg3DSqYEiWby1U2Q83Cxg_8dv4BTev',
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[v0] fetchPartner - Error:', err);
+      }
+    };
+    fetchPartner();
+  }, [user?.uid, partnerData]);
+
+  // Sync User Mood to Firestore (Optimized: Only sync on actual change)
+  useEffect(() => {
+    if (!user?.uid || !userMood) return;
+
+    // Skip if this mood+intensity was already synced
+    if (lastSyncedMood.current?.mood === userMood.mood &&
+      lastSyncedMood.current?.intensity === userMood.intensity) {
+      return;
+    }
+
+    updateMood(user.uid, userMood.mood, userMood.intensity);
+    lastSyncedMood.current = { mood: userMood.mood, intensity: userMood.intensity };
+    console.log('[v0] Syncing mood to cloud (optimized):', userMood.mood);
+  }, [userMood.mood, userMood.intensity, user?.uid]);
+
+  // Subscribe to Partner Mood
+  useEffect(() => {
+    if (!partnerId) return;
+
+    console.log('[v0] Subscribing to partner mood for:', partnerId);
+    const unsubscribe = subscribeToUserMood(partnerId, (data) => {
+      console.log('[v0] Partner mood updated from cloud:', data);
+      setPartnerMood(prev => ({ ...prev, ...data }));
+
+      // Update the status text in partner card
+      setPartnerData(prev => prev ? ({
+        ...prev,
+        status: `Feeling ${data.mood}`,
+        dailyLoveCount: data.dailyLoveCount,
+      }) : null);
+    });
+    return () => unsubscribe();
+  }, [partnerId]);
+
+  // Subscribe to User's own Profile (to get Real-time Love Bites count)
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsubscribe = subscribeToUserMood(user.uid, (data) => {
+      setUserMood(prev => ({
+        ...prev,
+        ...data
+      }));
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  // Subscribe to Love Bites
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsubscribe = subscribeToLoveBites(user.uid, (bite) => {
+      // Trigger animation
+      setPartnerSendingKiss(true);
+      setTimeout(() => setPartnerSendingKiss(false), 2000);
+      handleLoveBite();
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  // Simulate user BPM updates
   useEffect(() => {
     const interval = setInterval(() => {
-      // Update user BPM
       setUserBpm(prev => {
         const change = Math.random() > 0.5 ? 1 : -1;
-        const newVal = prev + change;
-        return Math.max(60, Math.min(100, newVal));
+        return Math.max(60, Math.min(100, prev + change));
       });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
-      // Update Partner Data (BPM and Sync)
-      setPartnerData(prev => {
-        if (!prev) return null;
-        const bpmChange = Math.random() > 0.5 ? 1 : -1;
-        const newBpm = Math.max(60, Math.min(100, prev.bpm + bpmChange));
-
-        // Sync strength fluctuates slightly
-        const syncChange = (Math.random() - 0.5) * 0.2;
-
-        return {
-          ...prev,
-          bpm: newBpm,
-          connectionStrength: Math.min(100, Math.max(80, prev.connectionStrength + (Math.random() - 0.5)))
-        };
-      });
-
+  // Sync strength fluctuates slightly
+  useEffect(() => {
+    const interval = setInterval(() => {
       setSyncStrength(prev => Math.min(100, Math.max(90, prev + (Math.random() - 0.5) * 0.5)));
-
     }, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -183,12 +267,15 @@ export function HomeDashboard() {
     { icon: Gamepad2, title: 'Beat High Score', time: '1h ago', status: 'Dino Run', color: 'text-accent-pink' },
   ];
 
+
+
   return (
     <div className="w-screen mx-auto bg-pink-900/30 px-4 lg:px-6 py-6 space-y-3">
       <LoveBiteOverlay isActive={isLoveBiteActive} />
       {/* Header */}
       <HeroBackground />
       <header className=" rounded-2xl px-6 lg:px-8 py-4 flex flex-col lg:flex-row items-center justify-between gap-6">
+
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-black/40 rounded-lg flex items-center justify-center text-white neon-border">
             <Image
@@ -201,22 +288,24 @@ export function HomeDashboard() {
           <div>
             <h1 className="text-xl font-bold tracking-tighter text-white leading-none">Echo</h1>
             <div className="flex items-center gap-1.5 mt-1">
+              <div className=" w-2 h-2 bg-green-500 rounded-full border-2 borders z-20"></div>
               <span className="material-symbols-outlined text-accent-pink text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                lock
+
               </span>
               <span className="text-[10px] font-bold tracking-[0.15em] text-accent-pink uppercase">Connected</span>
             </div>
           </div>
         </div>
 
+
         {/* Navigation Icons */}
-        <nav className="flex items-center  gap-2">
+        <nav className="flex items-center   gap-2">
           <button
             onClick={() => setViewMode('chat')}
             className="w-10  h-10 rounded-xl  border border-accent-pink/90 flex items-center justify-center hover:bg-accent-pink/20 hover:border-accent-pink/40 transition-all text-white/70 hover:text-accent-pink"
             title="Live Chat"
           >
-            <MessageCircle className="w-5 h-5" />
+            <MessageCircle className="w-5 h-5 " />
           </button>
           <Link
             href="/requests"
@@ -236,6 +325,7 @@ export function HomeDashboard() {
             <Sparkles className="w-5 h-5" />
           </button>
         </nav>
+
 
         {/* User Info */}
         <div className="flex items-center gap-6">
@@ -260,6 +350,24 @@ export function HomeDashboard() {
         </div>
       </header>
 
+      <MoodWindow
+        userMood={userMood}
+        partnerMood={partnerMood}
+        userName="You"
+        partnerName={partnerData?.name || 'Partner'}
+        userSendingKiss={userSendingKiss}
+        partnerSendingKiss={partnerSendingKiss}
+        onMoodChange={(mood) => setUserMood(prev => ({ ...prev, mood }))}
+        onSendLoveBite={async () => {
+          if (!user || !partnerId) return;
+          setUserSendingKiss(true);
+          setTimeout(() => setUserSendingKiss(false), 2000);
+          handleLoveBite(); // trigger local effect
+          await sendLoveBite(user.uid, partnerId);
+        }}
+      />
+
+
       {/* Main Content */}
       <main className="space-y-0">
         {/* Main Display with Video Player and Heartbeat */}
@@ -279,7 +387,17 @@ export function HomeDashboard() {
         {/* Grid Section */}
         <div className=" pt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Partner Card */}
-          <PartnerCard partnerData={partnerData} onSendLoveBite={handleLoveBite} />
+          <PartnerCard
+            partnerData={partnerData}
+            onSendLoveBite={async () => {
+              if (!user || !partnerId) return;
+              // Trigger both the full-screen overlay and the stickman animation
+              setUserSendingKiss(true);
+              setTimeout(() => setUserSendingKiss(false), 2000);
+              handleLoveBite();
+              await sendLoveBite(user.uid, partnerId);
+            }}
+          />
 
           {/* Live Updates */}
           <div className="glass-panel rounded-2xl p-6 flex flex-col">
@@ -361,7 +479,7 @@ export function HomeDashboard() {
 
       {/* Footer */}
       <footer className="text-center py-8">
-        <p className="text-[10px] uppercase tracking-[0.5em] text-white/20">Symmetry &amp; Harmony • Echo 2024</p>
+        <p className="text-[10px] uppercase tracking-[0.5em] text-white/60">Intimacy  Harmony • Echo 2026</p>
       </footer>
     </div>
   );

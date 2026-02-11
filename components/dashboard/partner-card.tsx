@@ -26,7 +26,7 @@ export function PartnerCard({ partnerData, onSendLoveBite }: PartnerCardProps) {
                 <img
                     alt="Partner"
                     className="w-full h-full rounded-full object-cover border-2 border-accent-pink/50 relative z-10"
-                    src={partnerData?.avatar || 'https://via.placeholder.com/80'}
+                    src={partnerData?.avatar || 'https://i.pinimg.com/originals/c1/4c/8c/c14c8cf95fb49b842d1b930fee4a991d.jpg'}
                 />
                 {partnerData?.isOnline && (
                     <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-surface-dark z-20"></div>

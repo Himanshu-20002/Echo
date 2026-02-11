@@ -87,19 +87,19 @@ export default function MessagesPage() {
               <p className="text-muted-foreground">
                 When you match with someone, you can start messaging here.
               </p>
-              <Button onClick={() => router.push('/discover')} className="w-full">
-                Back to Discovery
+              <Button onClick={() => router.push('/home')} className="w-full">
+                Back to home
               </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
             <Button
-              onClick={() => router.push('/discover')}
+              onClick={() => router.push('/home')}
               variant="outline"
               className="w-full"
             >
-              Back to Discovery
+              Back to home
             </Button>
             {conversations.map((conv) => {
               const otherUserId = conv.participants.find(
@@ -114,11 +114,9 @@ export default function MessagesPage() {
                 <Card
                   key={conv.id}
                   className="cursor-pointer hover:bg-muted transition"
-                  onClick={() => {
-                    if (otherUserId) {
-                      router.push(`/messages/${otherUserId}`);
-                    }
-                  }}
+             onClick={() => {
+      if (otherUserId) router.push(`/messages/${otherUserId}`);
+    }}
                 >
                   <CardContent className="pt-4 pb-4 flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1">
