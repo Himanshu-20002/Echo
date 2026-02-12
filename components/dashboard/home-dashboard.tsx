@@ -335,14 +335,14 @@ export function HomeDashboard() {
 
 
   return (
-    <div className="w-full min-h-screen mx-auto bg-black text-white relative overflow-x-hidden">
+    <div className="w-full min-h-screen mx-auto bg-black text-white relative">
       {/* Background Layers - Moved out of space-y flow to fix the 'teleportation/shift' bug */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <HeroBackground />
         <LoveBiteOverlay isActive={isLoveBiteActive} />
       </div>
 
-      <div className="relative z-10 px-4 lg:px-6 py-6 space-y-6 pb-24 lg:pb-6">
+      <div className="relative z-10 px-4 lg:px-6 py-6 space-y-6 pb-32 md:pb-6 overflow-x-hidden">
         {/* Header */}
         <header className="flex lg:flex-row flex-row items-center justify-between gap-6 px-4">
           <div className="flex items-center gap-4">
@@ -402,42 +402,6 @@ export function HomeDashboard() {
             onUpdateDate={handleUpdateAnniversary}
           />
         </div>
-
-        {/* Floating Bottom Navigation - Mobile Optimized */}
-        <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 md:left-8 md:translate-x-0 z-[100] flex flex-row md:flex-col gap-3">
-          <div className="glass-panel-heavy p-2 rounded-[2.5rem] md:rounded-[2rem] flex flex-row md:flex-col gap-2 border border-white/10 shadow-2xl backdrop-blur-2xl">
-            <button
-              onClick={() => setViewMode('chat')}
-              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center transition-all ${viewMode === 'chat'
-                ? 'bg-accent-pink text-white shadow-[0_0_20px_rgba(236,72,153,0.4)]'
-                : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-                }`}
-              title="Live Chat"
-            >
-              <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-            <Link
-              href="/requests"
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all text-white/60 hover:text-white group"
-              title="View Requests"
-            >
-              <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
-            </Link>
-            <Link
-              href="/discover"
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all text-white/60 hover:text-white group"
-              title="Global Feed"
-            >
-              <Compass className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
-            </Link>
-            <button
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all text-white/60 hover:text-white group"
-              title="Interests"
-            >
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
-            </button>
-          </div>
-        </nav>
 
         <MoodWindow
           userMood={userMood}
@@ -572,6 +536,42 @@ export function HomeDashboard() {
           <p className="text-[10px] uppercase tracking-[0.5em] text-white/60">Intimacy  Harmony • Echo 2026</p>
         </footer>
       </div>
+
+      {/* Floating Bottom Navigation - Mobile Optimized - Fixed to viewport */}
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 md:left-8 md:translate-x-0 z-[100] flex flex-row md:flex-col gap-3">
+        <div className="glass-panel-heavy p-2 rounded-[2.5rem] md:rounded-[2rem] flex flex-row md:flex-col gap-2 border border-white/10 shadow-2xl backdrop-blur-2xl">
+          <button
+            onClick={() => setViewMode('chat')}
+            className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center transition-all ${viewMode === 'chat'
+              ? 'bg-accent-pink text-white shadow-[0_0_20px_rgba(236,72,153,0.4)]'
+              : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+              }`}
+            title="Live Chat"
+          >
+            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+          <Link
+            href="/requests"
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all text-white/60 hover:text-white group"
+            title="View Requests"
+          >
+            <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
+          </Link>
+          <Link
+            href="/discover"
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all text-white/60 hover:text-white group"
+            title="Global Feed"
+          >
+            <Compass className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
+          </Link>
+          <button
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all text-white/60 hover:text-white group"
+            title="Interests"
+          >
+            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

@@ -160,7 +160,9 @@ export function MoodWindow({
       <div className="flex flex-wrap gap-4 justify-center items-center p-4 sm:p-9 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-xl overflow-visible">
 
         {/* Mood Selector Group */}
-        <div className="flex w-full sm:w-auto overflow-x-auto scrollbar-hide gap-2 pb-2 sm:pb-0 sm:pr-4 sm:border-r border-white/10 shrink-0 px-3 sm:px-0">
+        <div
+          className="flex flex-wrap w-full sm:w-auto gap-2 sm:pr-4 sm:border-r border-white/10 justify-center sm:justify-start"
+        >
           {(Object.keys(MOOD_COLORS) as MoodType[]).map((moodType) => {
             const isSelected = userMood.mood === moodType;
             const colors = MOOD_COLORS[moodType];
@@ -169,7 +171,7 @@ export function MoodWindow({
               <button
                 key={moodType}
                 onClick={() => onMoodChange?.(moodType)}
-                className={`group relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all duration-300 min-w-fit shrink-0 ${isSelected
+                className={`group relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all duration-300 ${isSelected
                   ? 'scale-105 shadow-md'
                   : 'opacity-100 hover:opacity-100'
                   }`}

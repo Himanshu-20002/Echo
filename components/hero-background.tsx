@@ -15,7 +15,12 @@ const HeroBackground = memo(function HeroBackground({ className = '' }: Props) {
   const g5 = `gradientHeart5-${uid}`;
 
   return (
-    <div className={`absolute inset-0 pointer-events-none overflow-hidden select-none ${className}`}>
+    <div
+      className={`absolute inset-0 pointer-events-none overflow-hidden select-none ${className}`}
+      style={{
+        transform: 'translate3d(0, 0, 0)'
+      }}
+    >
       {/* Primary Heart */}
       <svg
         className="absolute top-[10%] left-[5%] w-16 h-16 sm:w-20 sm:h-20 opacity-40 animate-float will-change-transform transition-opacity duration-700"
