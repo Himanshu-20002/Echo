@@ -32,7 +32,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased ">
         <AuthProvider>
-          <main>
+          <main className='bg-black'>
             {children}
           </main>
         </AuthProvider>

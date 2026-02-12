@@ -667,3 +667,31 @@ export async function updateAnniversary(relationshipId: string, date: string) {
     updatedAt: serverTimestamp()
   });
 }
+
+/**
+ * Creates or updates a relationship document for two users
+ */
+export async function createOrUpdateRelationship(userId: string, partnerId: string, data: any = {}) {
+  // Check if relationship already exists
+  const existingRel = await getRelationship(userId);
+
+  if (existingRel) {
+    // Update existing relationship
+    const relRef = doc(db, 'relationships', existingRel.id);
+    await updateDoc(relRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    });
+    return existingRel.id;
+  } else {
+    // Create new relationship
+    const relRef = await addDoc(collection(db, 'relationships'), {
+      participants: [userId, partnerId],
+      matchDate: new Date().toISOString(),
+      ...data,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return relRef.id;
+  }
+}

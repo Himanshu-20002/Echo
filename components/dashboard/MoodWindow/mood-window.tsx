@@ -76,14 +76,7 @@ export function MoodWindow({
         <div className="absolute inset-0 border border-white/10 rounded-[1.2rem] pointer-events-none z-10" />
 
         {/* Ultra-Clear Screen Content */}
-        <div className="absolute inset-0 overflow-hidden bg-[#0a0510]">
-          {/* Subtle Premium Gradient Glow */}
-          <div className="absolute inset-0 opacity-20 pointer-events-none"
-            style={{
-              background: 'radial-gradient(circle at top right, rgba(233, 75, 127, 0.2), transparent 60%), radial-gradient(circle at bottom left, rgba(107, 168, 150, 0.1), transparent 60%)'
-            }}
-          />
-
+        <div className="absolute inset-0 overflow-hidden bg-black">
           {/* Main content - Canvas (HD Clarity) */}
           <div className="absolute inset-0 w-full h-full">
             <SharedMoodCanvas
@@ -224,7 +217,7 @@ export function MoodWindow({
               }`}
           >
             <span className="text-xs sm:text-sm">♥</span>
-            <span className="truncate">{partnerSendingKiss ? 'Received' : 'Partner'}</span>
+            <span className="truncate">{partnerSendingKiss ? 'Received' : ''}</span>
           </button>
         </div>
       </div>

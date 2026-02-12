@@ -39,7 +39,8 @@ import {
   updateUserProfile,
   subscribeToRelationship,
   updateAnniversary,
-  syncUserProfile
+  syncUserProfile,
+  createOrUpdateRelationship
 } from '@/lib/firestore-service';
 import { MoodType } from '@/lib/types';
 interface Video {
@@ -210,20 +211,30 @@ export function HomeDashboard() {
   }, [user?.uid]);
 
   const handleUpdateAnniversary = async (date: string) => {
-    if (!relationshipId) {
-      // Fallback: if no relationship doc yet, update user profile (as before)
-      if (user?.uid) {
+    if (!user?.uid) return;
+
+    try {
+      if (!relationshipId && partnerId) {
+        // No relationship doc exists yet - create one with the anniversary
+        console.log('[Anniversary] Creating new relationship document');
+        const newRelId = await createOrUpdateRelationship(user.uid, partnerId, {
+          anniversaryDate: date
+        });
+        setRelationshipId(newRelId);
+        setAnniversaryDate(date);
+      } else if (relationshipId) {
+        // Relationship exists - update it
+        console.log('[Anniversary] Updating existing relationship:', relationshipId);
+        await updateAnniversary(relationshipId, date);
+        setAnniversaryDate(date);
+      } else {
+        // Fallback: No partner yet, save to user profile
+        console.log('[Anniversary] No partner found, saving to user profile');
         await updateUserProfile(user.uid, { anniversaryDate: date });
         setAnniversaryDate(date);
       }
-      return;
-    }
-
-    try {
-      await updateAnniversary(relationshipId, date);
-      setAnniversaryDate(date);
     } catch (err) {
-      console.error('Failed to update anniversary', err);
+      console.error('[Anniversary] Failed to update anniversary:', err);
     }
   };
 
@@ -376,7 +387,7 @@ export function HomeDashboard() {
                   <img
                     alt="User"
                     className="w-full h-full rounded-full object-cover shadow-2xl"
-                    src={user?.photoURL || 'https://via.placeholder.com/40'}
+                    src={currentUserProfile?.photoURL || user?.photoURL || 'https://via.placeholder.com/40'}
                   />
                 </div>
               </Link>
