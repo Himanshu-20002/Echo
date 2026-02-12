@@ -2,241 +2,394 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  createUserProfile,
+  getUserProfile,
+  updateUserProfile,
+  uploadUserProfileImage,
 } from '@/lib/firestore-service';
+import { UserProfile } from '@/lib/types';
+import {
+  Heart,
+  User,
+  MapPin,
+  Calendar,
+  Music,
+  Sparkles,
+  ArrowLeft,
+  Camera,
+  Save,
+  Loader2,
+  Plus,
+  X
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function ProfilePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Local state for form fields to avoid frequent Firestore calls
+  const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
     age: '',
+    location: '',
     height: '',
-    location: ''
+    interests: [] as string[],
+    favoriteMusic: [] as string[],
   });
 
-  const [isSaving, setIsSaving] = useState(false);
+  const [newInterest, setNewInterest] = useState('');
+  const [newMusic, setNewMusic] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/');
     }
-    if (user && !profile.displayName) {
-      setProfile(prev => ({ ...prev, displayName: user.displayName || '' }));
-    }
-  }, [user, loading, router, profile.displayName]);
+  }, [user, loading, router]);
 
-  const handleSaveProfile = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!user) return;
+  useEffect(() => {
+    if (user?.uid) {
+      const fetchProfile = async () => {
+        const data = await getUserProfile(user.uid);
+        if (data) {
+          setProfile(data);
+          setFormData({
+            displayName: data.displayName || '',
+            bio: data.bio || '',
+            age: data.age?.toString() || '',
+            location: data.location || '',
+            height: data.height || '',
+            interests: data.interests || [],
+            favoriteMusic: data.favoriteMusic || [],
+          });
+        } else {
+          // Fallback if sync hasn't happened yet
+          setFormData(prev => ({ ...prev, displayName: user.displayName || '' }));
+          setProfile({
+            uid: user.uid,
+            displayName: user.displayName || 'User',
+            photoURL: user.photoURL || '',
+            email: user.email || '',
+            createdAt: new Date(),
+          } as any);
+        }
+      };
+      fetchProfile();
+    }
+  }, [user?.uid]);
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.uid) return;
 
     try {
-      setIsSaving(true);
-      await createUserProfile({
-        uid: user.uid,
-        email: user.email || '',
-        displayName: profile.displayName || 'User',
-        photoURL: user.photoURL || '',
-        bio: profile.bio,
-        age: profile.age ? parseInt(profile.age) : undefined,
-        location: profile.location,
-        height: profile.height,
-        emotions: ['peaceful'],
-        interests: [],
-        favoriteMusic: [],
-      });
-
-      router.replace('/discover');
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      setIsSaving(false);
-      alert('Error creating profile');
+      setIsUploading(true);
+      const url = await uploadUserProfileImage(user.uid, file);
+      setProfile(prev => prev ? { ...prev, photoURL: url } : null);
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Failed to upload image');
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  if (loading) {
+  const handleSave = async () => {
+    if (!user?.uid) return;
+
+    try {
+      setIsSaving(true);
+
+      // Filter out undefined values to prevent Firestore errors
+      const updates: any = {
+        displayName: formData.displayName,
+        bio: formData.bio,
+        location: formData.location,
+        height: formData.height,
+        interests: formData.interests,
+        favoriteMusic: formData.favoriteMusic,
+      };
+
+      if (formData.age) {
+        updates.age = parseInt(formData.age);
+      }
+
+      await updateUserProfile(user.uid, updates);
+      setProfile(prev => prev ? { ...prev, ...updates } as any : null);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Save failed:', err);
+      alert('Failed to save profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addInterest = () => {
+    if (newInterest.trim() && !formData.interests.includes(newInterest.trim())) {
+      setFormData(prev => ({ ...prev, interests: [...prev.interests, newInterest.trim()] }));
+      setNewInterest('');
+    }
+  };
+
+  const removeInterest = (item: string) => {
+    setFormData(prev => ({ ...prev, interests: prev.interests.filter(i => i !== item) }));
+  };
+
+  const addMusic = () => {
+    if (newMusic.trim() && !formData.favoriteMusic.includes(newMusic.trim())) {
+      setFormData(prev => ({ ...prev, favoriteMusic: [...prev.favoriteMusic, newMusic.trim()] }));
+      setNewMusic('');
+    }
+  };
+
+  const removeMusic = (item: string) => {
+    setFormData(prev => ({ ...prev, favoriteMusic: prev.favoriteMusic.filter(i => i !== item) }));
+  };
+
+  if (loading || !profile) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#211119] text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-[#e8308c] border-t-transparent rounded-full animate-spin"></div>
-          <p className="font-bold tracking-widest uppercase text-xs opacity-50">Opening your heart...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-black text-white">
+        <Loader2 className="w-8 h-8 animate-spin text-accent-pink" />
       </div>
     );
   }
 
-  if (!user) return null;
-
   return (
-    <div className="min-h-screen bg-[#f8f6f7] dark:bg-[#211119] text-slate-900 dark:text-slate-100 font-display transition-colors duration-500">
-      {/* Material Symbols Import */}
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-      <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@100;300;400;500;700;900&display=swap" rel="stylesheet" />
+    <div className="min-h-screen bg-black text-white pb-20">
+      {/* Top Banner / Cover */}
+      <div className="h-48 w-full bg-gradient-to-b from-accent-pink/20 to-transparent relative">
+        <Link href="/home" className="absolute top-6 left-6 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+      </div>
 
-      <style jsx global>{`
-        body { font-family: 'Be Vietnam Pro', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #472436; border-radius: 10px; }
-      `}</style>
-
-      <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
-        <div className="layout-container flex h-full grow flex-col">
-          {/* Navigation Header */}
-          <header className="flex items-center justify-between border-b border-solid border-slate-200 dark:border-[#e8308c]/20 px-6 md:px-20 py-4 bg-[#f8f6f7]/80 dark:bg-[#211119]/80 backdrop-blur-md sticky top-0 z-50">
+      <div className="max-w-4xl mx-auto px-6 -mt-24">
+        {/* Completion Banner */}
+        {(!profile.displayName || !profile.bio || !profile.age) && (
+          <div className="mb-6 p-4 bg-accent-pink/10 border border-accent-pink/30 rounded-2xl flex items-center justify-between animate-pulse">
             <div className="flex items-center gap-3">
-              <div className="size-8 text-[#e8308c]">
-                <svg fill="currentColor" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M44 11.2727C44 14.0109 39.8386 16.3957 33.69 17.6364C39.8386 18.877 44 21.2618 44 24C44 26.7382 39.8386 29.123 33.69 30.3636C39.8386 31.6043 44 33.9891 44 36.7273C44 40.7439 35.0457 44 24 44C12.9543 44 4 40.7439 4 36.7273C4 33.9891 8.16144 31.6043 14.31 30.3636C8.16144 29.123 4 26.7382 4 24C4 21.2618 8.16144 18.877 14.31 17.6364C8.16144 16.3957 4 14.0109 4 11.2727C4 7.25611 12.9543 4 24 4C35.0457 4 44 7.25611 44 11.2727Z"></path>
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold leading-tight tracking-tight text-slate-900 dark:text-white">Echo</h2>
+              <Sparkles className="w-5 h-5 text-accent-pink" />
+              <span className="text-sm font-bold text-accent-pink">Your profile is incomplete. Fill in your name, bio, and age to unlock all features!</span>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="hidden md:flex flex-col items-end mr-2">
-                <span className="text-xs font-semibold text-[#e8308c] uppercase tracking-widest">Step 2 of 5</span>
-                <div className="w-32 h-1.5 bg-[#e8308c]/20 rounded-full mt-1 overflow-hidden">
-                  <div className="bg-[#e8308c] h-full w-2/5 rounded-full"></div>
+            <button onClick={() => setIsEditing(true)} className="text-xs font-black uppercase tracking-widest bg-accent-pink text-white px-4 py-2 rounded-xl">Fix Now</button>
+          </div>
+        )}
+
+        {/* Profile Header Card */}
+        <div className="glass-panel-heavy rounded-[2.5rem] p-8 relative border border-white/10">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Avatar Section */}
+            <div className="relative group cursor-pointer" onClick={handleImageClick}>
+              <div className="w-32 h-32 rounded-full border-4 border-accent-pink/50 p-1 relative overflow-hidden">
+                {isUploading ? (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                    <Loader2 className="w-6 h-6 animate-spin text-accent-pink" />
+                  </div>
+                ) : null}
+                <img
+                  src={profile.photoURL || 'https://via.placeholder.com/128'}
+                  className="w-full h-full rounded-full object-cover"
+                  alt="Profile"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <button className="flex items-center justify-center rounded-full size-10 bg-[#e8308c]/10 text-[#e8308c] hover:bg-[#e8308c]/20 transition-colors">
-                <span className="material-symbols-outlined">help</span>
-              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
             </div>
-          </header>
 
-          <main className="flex flex-1 justify-center py-12 px-6">
-            <div className="max-w-[800px] w-full flex flex-col gap-10">
-              {/* Hero Title Section */}
-              <div className="text-center md:text-left">
-                <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">
-                  Create Your <span className="text-[#e8308c]">Profile</span>
-                </h1>
-                <p className="mt-3 text-slate-600 dark:text-[#e8308c]/60 text-lg max-w-lg">
-                  Set the foundation for your private connection. Authenticity is the bridge to intimacy.
+            {/* Basic Info */}
+            <div className="flex-1 text-center md:text-left space-y-2">
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                {isEditing ? (
+                  <input
+                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-1 text-2xl font-black outline-none focus:border-accent-pink transition-colors"
+                    value={formData.displayName}
+                    onChange={e => setFormData({ ...formData, displayName: e.target.value })}
+                  />
+                ) : (
+                  <h1 className="text-4xl font-black tracking-tight">{profile.displayName}</h1>
+                )}
+
+                <button
+                  onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+                  className={`px-6 py-2 rounded-full font-bold text-sm transition-all flex items-center gap-2 ${isEditing ? 'bg-accent-pink text-white' : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                    }`}
+                  disabled={isSaving}
+                >
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : (isEditing ? <Save className="w-4 h-4" /> : 'Edit Profile')}
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-white/60 text-sm">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Heart className="w-4 h-4 text-accent-pink" /> {profile.age || '??'} Years
+                </span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <MapPin className="w-4 h-4 text-accent-pink" /> {profile.location || 'Echo Universe'}
+                </span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Calendar className="w-4 h-4 text-accent-pink" /> Joined {new Date(profile.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Bar */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/5">
+            <div className="bg-white/5 rounded-2xl p-4 text-center">
+              <span className="block text-2xl font-black text-accent-pink">{profile.dailyLoveCount || 0}</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-white/30">Love Received</span>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 text-center">
+              <span className="block text-2xl font-black text-cyan-400">84</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-white/30">Love Sent</span>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 text-center">
+              <span className="block text-2xl font-black text-purple-400">92%</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-white/30">Sync Score</span>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 text-center">
+              <span className="block text-2xl font-black text-green-400">Active</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-white/30">Status</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Details Sections */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          {/* Main Info Column */}
+          <div className="md:col-span-2 space-y-6">
+            {/* Bio Card */}
+            <div className="glass-panel rounded-3xl p-6 border border-white/5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-accent-pink mb-4 flex items-center gap-2">
+                <User className="w-4 h-4" /> About Me
+              </h3>
+              {isEditing ? (
+                <textarea
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-accent-pink transition-colors resize-none"
+                  rows={4}
+                  value={formData.bio}
+                  onChange={e => setFormData({ ...formData, bio: e.target.value })}
+                />
+              ) : (
+                <p className="text-white/80 leading-relaxed italic">
+                  "{profile.bio || "No bio yet. Tell us your story..."}"
                 </p>
+              )}
+            </div>
+
+            {/* Specifics Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-white/30 block mb-1">Age</span>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    className="bg-transparent border-b border-white/10 w-full text-sm outline-none focus:border-accent-pink transition-colors"
+                    value={formData.age}
+                    onChange={e => setFormData({ ...formData, age: e.target.value })}
+                    placeholder="e.g. 25"
+                  />
+                ) : (
+                  <span className="text-sm font-bold">{profile.age || '??'} Years</span>
+                )}
               </div>
-
-              {/* Profile Form Card */}
-              <div className="bg-white dark:bg-[#e8308c]/5 border border-slate-200 dark:border-[#e8308c]/20 rounded-xl p-8 md:p-12 shadow-2xl shadow-[#e8308c]/5">
-                <form onSubmit={handleSaveProfile} className="flex flex-col gap-10">
-
-                  {/* Profile Photo Section */}
-                  <div className="flex flex-col md:flex-row items-center gap-8">
-                    <div className="relative group">
-                      <div className="size-36 rounded-full border-4 border-[#e8308c] p-1 bg-[#f8f6f7] dark:bg-[#211119] overflow-hidden">
-                        <div
-                          className="w-full h-full rounded-full bg-cover bg-center"
-                          style={{ backgroundImage: `url(${user.photoURL || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPJ3JSPuUfXA1RkNO8ZO6LY6RcgRdww3d2jEmdXMyKPOt9OeJjYWyg3nkeGh8xxuG_7vgwzDVRuWScVCCbkm2gyqtVBWTRCn9Ed2Af_5bs9WaIXe5FhzwdPfpEUlu_XauHKrs5xUDGODNdmtglyBL58k0wW_MSDB2iBDlLpOr9N-8Ob_s9pOet5QqaD1hAzzcEEXURpilFShbtaRqhnHicP-PHPSPII3jeyskb0rvIug6xocvN-mUdnLx_PfkWDxwEIwe5-WIyN6Xn'})` }}
-                        ></div>
-                      </div>
-                      <button className="absolute bottom-1 right-1 size-10 bg-[#e8308c] text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform" type="button">
-                        <span className="material-symbols-outlined">photo_camera</span>
-                      </button>
-                    </div>
-                    <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                      <h3 className="text-xl font-bold dark:text-white">Profile Photo</h3>
-                      <p className="text-slate-500 dark:text-[#e8308c]/60">Upload a photo that represents you.</p>
-                      <p className="text-xs text-slate-400 dark:text-[#e8308c]/40 mt-1 uppercase font-bold tracking-tighter">JPG, PNG or HEIC — Max 5MB</p>
-                    </div>
-                  </div>
-
-                  <hr className="border-slate-100 dark:border-[#e8308c]/10" />
-
-                  {/* Personal Details Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex flex-col gap-2 md:col-span-2">
-                      <label className="text-sm font-bold uppercase tracking-widest text-[#e8308c] ml-1">Display Name</label>
-                      <input
-                        className="w-full px-6 py-4 rounded-full border border-slate-200 dark:border-[#e8308c]/30 bg-slate-50 dark:bg-[#211119]/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#e8308c] focus:border-transparent transition-all outline-none text-lg"
-                        placeholder="How should we call you?"
-                        type="text"
-                        required
-                        value={profile.displayName}
-                        onChange={(e) => setProfile({ ...profile, displayName: e.target.value })}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-bold uppercase tracking-widest text-[#e8308c] ml-1">Age</label>
-                      <input
-                        className="w-full px-6 py-4 rounded-full border border-slate-200 dark:border-[#e8308c]/30 bg-slate-50 dark:bg-[#211119]/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#e8308c] focus:border-transparent transition-all outline-none text-lg"
-                        placeholder="e.g. 28"
-                        type="number"
-                        value={profile.age}
-                        onChange={(e) => setProfile({ ...profile, age: e.target.value })}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-bold uppercase tracking-widest text-[#e8308c] ml-1">Height</label>
-                      <input
-                        className="w-full px-6 py-4 rounded-full border border-slate-200 dark:border-[#e8308c]/30 bg-slate-50 dark:bg-[#211119]/50 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#e8308c] focus:border-transparent transition-all outline-none text-lg"
-                        placeholder="e.g. 511"
-                        type="text"
-                        value={profile.height}
-                        onChange={(e) => setProfile({ ...profile, height: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Profile Letter Section */}
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <label className="text-sm font-bold uppercase tracking-widest text-[#e8308c] ml-1 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-lg">favorite</span>
-                        The Profile Letter
-                      </label>
-                      <span className="text-xs text-slate-400 font-medium">Mandatory Section</span>
-                    </div>
-                    <div className="relative group">
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-[#e8308c]/30 to-purple-500/30 rounded-xl blur opacity-30 group-focus-within:opacity-60 transition duration-1000"></div>
-                      <div className="relative">
-                        <textarea
-                          className="custom-scrollbar w-full p-6 rounded-xl border border-slate-200 dark:border-[#e8308c]/30 bg-white dark:bg-[#211119]/80 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#e8308c] focus:border-transparent transition-all outline-none text-lg resize-none leading-relaxed"
-                          placeholder="Express your intentions, values, and feelings. This is the first thing your future partner will truly feel about you..."
-                          rows={6}
-                          required
-                          value={profile.bio}
-                          onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                        ></textarea>
-                      </div>
-                    </div>
-                    <p className="text-sm text-slate-500 dark:text-[#e8308c]/50 italic px-2">
-                      Tip: Write from the heart. Echo is about commitment, not swiping.
-                    </p>
-                  </div>
-
-                  {/* Footer Actions */}
-                  <div className="flex flex-col gap-6 pt-4">
-                    <button
-                      className="w-full bg-[#e8308c] hover:bg-[#e8308c]/90 text-white font-bold py-5 rounded-full text-xl shadow-lg shadow-[#e8308c]/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                      type="submit"
-                      disabled={isSaving}
-                    >
-                      {isSaving ? 'Connecting...' : 'Begin My Journey'}
-                      <span className="material-symbols-outlined">arrow_forward</span>
-                    </button>
-                    <div className="flex items-center justify-center gap-2 text-slate-400 dark:text-[#e8308c]/40 text-xs">
-                      <span className="material-symbols-outlined text-sm">lock</span>
-                      <span>Your profile is only visible to people you choose to lock with.</span>
-                    </div>
-                  </div>
-                </form>
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-white/30 block mb-1">Location</span>
+                {isEditing ? (
+                  <input className="bg-transparent border-b border-white/10 w-full text-sm outline-none focus:border-accent-pink transition-colors" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="e.g. New York" />
+                ) : (
+                  <span className="text-sm font-bold">{profile.location || 'Unknown'}</span>
+                )}
               </div>
-
-              {/* Subtle Pagination Dots */}
-              <div className="flex justify-center gap-2 pb-12">
-                <div className="size-2 rounded-full bg-[#e8308c]/20"></div>
-                <div className="size-2 rounded-full bg-[#e8308c]"></div>
-                <div className="size-2 rounded-full bg-[#e8308c]/20"></div>
-                <div className="size-2 rounded-full bg-[#e8308c]/20"></div>
-                <div className="size-2 rounded-full bg-[#e8308c]/20"></div>
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-white/30 block mb-1">Height</span>
+                {isEditing ? (
+                  <input className="bg-transparent border-b border-white/10 w-full text-sm outline-none focus:border-accent-pink transition-colors" value={formData.height} onChange={e => setFormData({ ...formData, height: e.target.value })} placeholder="e.g. 5ft 11in" />
+                ) : (
+                  <span className="text-sm font-bold">{profile.height || '???"'}</span>
+                )}
               </div>
             </div>
-          </main>
+          </div>
+
+          {/* Interests & Music Sidebar */}
+          <div className="space-y-6">
+            {/* Interests Card */}
+            <div className="glass-panel rounded-3xl p-6 border border-white/5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-white/40 mb-4 flex items-center gap-2">
+                <Sparkles className="w-4 h-4" /> Interests
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {formData.interests.map((item, idx) => (
+                  <span key={idx} className="px-3 py-1 bg-accent-pink/10 border border-accent-pink/20 rounded-lg text-xs font-bold text-accent-pink flex items-center gap-2">
+                    {item}
+                    {isEditing && <X className="w-3 h-3 cursor-pointer" onClick={() => removeInterest(item)} />}
+                  </span>
+                ))}
+                {isEditing && (
+                  <div className="flex items-center gap-2 w-full mt-2">
+                    <input
+                      className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs outline-none flex-1"
+                      placeholder="Add interest..."
+                      value={newInterest}
+                      onChange={e => setNewInterest(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addInterest()}
+                    />
+                    <Plus className="w-4 h-4 text-accent-pink cursor-pointer" onClick={addInterest} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Music Card */}
+            <div className="glass-panel rounded-3xl p-6 border border-white/5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-white/40 mb-4 flex items-center gap-2">
+                <Music className="w-4 h-4" /> Favorite Music
+              </h3>
+              <div className="space-y-2">
+                {formData.favoriteMusic.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 bg-white/5 rounded-xl border border-white/5 group">
+                    <span className="text-xs font-medium text-white/70">{item}</span>
+                    {isEditing && <X className="w-3 h-3 text-white/20 hover:text-red-500 cursor-pointer" onClick={() => removeMusic(item)} />}
+                  </div>
+                ))}
+                {isEditing && (
+                  <div className="flex items-center gap-2 w-full mt-2">
+                    <input
+                      className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs outline-none flex-1"
+                      placeholder="Add artist/track..."
+                      value={newMusic}
+                      onChange={e => setNewMusic(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addMusic()}
+                    />
+                    <Plus className="w-4 h-4 text-accent-pink cursor-pointer" onClick={addMusic} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

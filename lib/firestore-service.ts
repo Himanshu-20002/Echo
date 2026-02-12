@@ -15,7 +15,8 @@ import {
   increment,
   runTransaction
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from './firebase';
 import { UserProfile, Message, Conversation, MoodType } from './types';
 
 // Simple in-memory cache to reduce reads
@@ -27,6 +28,7 @@ export async function createUserProfile(
 ) {
   const docRef = doc(db, 'users', profile.uid);
   await setDoc(docRef, { ...profile, createdAt: serverTimestamp() });
+  delete profileCache[profile.uid]; // Invalidate cache
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
@@ -35,7 +37,12 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   const docRef = doc(db, 'users', uid);
   const docSnap = await getDoc(docRef);
   if (docSnap.exists()) {
-    const profile = { uid: docSnap.id, ...docSnap.data() } as UserProfile;
+    const data = docSnap.data();
+    const profile = {
+      uid: docSnap.id,
+      ...data,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt
+    } as UserProfile;
     profileCache[uid] = profile;
     return profile;
   }
@@ -47,7 +54,53 @@ export async function updateUserProfile(
   updates: Partial<UserProfile>,
 ) {
   const docRef = doc(db, 'users', uid);
-  await updateDoc(docRef, updates);
+  await setDoc(docRef, updates, { merge: true });
+  delete profileCache[uid]; // Invalidate cache
+}
+
+export async function uploadUserProfileImage(uid: string, file: File): Promise<string> {
+  const storageRef = ref(storage, `profiles/${uid}/${file.name}`);
+  const snapshot = await uploadBytes(storageRef, file);
+  const downloadURL = await getDownloadURL(snapshot.ref);
+
+  await updateUserProfile(uid, { photoURL: downloadURL });
+  return downloadURL;
+}
+
+/**
+ * Ensures a user document exists and is kept in sync with basic auth data.
+ */
+export async function syncUserProfile(user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null }) {
+  const docRef = doc(db, 'users', user.uid);
+  const snap = await getDoc(docRef);
+
+  const data: Partial<UserProfile> = {
+    uid: user.uid,
+    email: user.email || '',
+    displayName: user.displayName || 'Anonymous',
+    photoURL: user.photoURL || undefined,
+  };
+
+  if (!snap.exists()) {
+    await setDoc(docRef, {
+      ...data,
+      emotions: [],
+      favoriteMusic: [],
+      interests: [],
+      createdAt: serverTimestamp(),
+    });
+  } else {
+    const existing = snap.data();
+    const updates: Partial<UserProfile> = {};
+    if (!existing.displayName) updates.displayName = data.displayName;
+    // Don't overwrite existing photoURL if it's already set (to handle custom uploads)
+    if (!existing.photoURL && data.photoURL) updates.photoURL = data.photoURL;
+
+    if (Object.keys(updates).length > 0) {
+      await updateDoc(docRef, updates);
+      delete profileCache[user.uid]; // Invalidate cache
+    }
+  }
 }
 
 export async function addEmotion(uid: string, emotion: string) {
@@ -96,6 +149,26 @@ export async function likeUser(userId: string, likedUserId: string) {
       timestamp: serverTimestamp(),
     });
     console.log('[v0] likeUser - Like saved with ID:', docRef.id);
+
+    // Check for mutual like to set matchDate
+    const isMutual = await checkMutualLike(userId, likedUserId);
+    if (isMutual) {
+      const matchDateStr = new Date().toISOString();
+      await updateUserProfile(userId, { matchDate: matchDateStr });
+      await updateUserProfile(likedUserId, { matchDate: matchDateStr });
+
+      // Create or update shared relationship document
+      const participants = [userId, likedUserId].sort();
+      const relId = participants.join('_');
+      await setDoc(doc(db, 'relationships', relId), {
+        participants,
+        matchDate: matchDateStr,
+        anniversaryDate: matchDateStr,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      console.log('[v0] likeUser - Mutual match! Relationship created/updated.');
+    }
   } catch (error) {
     console.error('[v0] likeUser - Error saving like:', error);
     throw error;
@@ -134,14 +207,34 @@ export async function getOrCreateConversation(
 ): Promise<string> {
   const conversationId = [userId, otherUserId].sort().join('_');
   const conversationRef = doc(db, 'conversations', conversationId);
-  const existing = await getDoc(conversationRef);
 
-  if (!existing.exists()) {
-    await setDoc(conversationRef, {
-      participants: [userId, otherUserId],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+  try {
+    const existing = await getDoc(conversationRef);
+    if (!existing.exists()) {
+      await setDoc(conversationRef, {
+        participants: [userId, otherUserId],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (error: any) {
+    // If we get a permission error on the getDoc, it might be because the doc doesn't exist
+    // and rules are strict. Let's try to create it anyway if we have permission to write.
+    if (error.code === 'permission-denied') {
+      console.warn('[v0] getOrCreateConversation - Permission denied on read, attempting creation...', conversationId);
+      try {
+        await setDoc(conversationRef, {
+          participants: [userId, otherUserId],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      } catch (writeError) {
+        console.error('[v0] getOrCreateConversation - Critical permission error:', writeError);
+        throw writeError;
+      }
+    } else {
+      throw error;
+    }
   }
 
   return conversationId;
@@ -455,7 +548,11 @@ export function subscribeToUserMood(userId: string, callback: (data: { mood: Moo
       });
     }
   }, (error) => {
-    console.error('[v0] subscribeToUserMood - Error:', error);
+    if (error.code === 'permission-denied') {
+      console.warn('[v0] subscribeToUserMood - Access denied. Check Firestore rules.');
+    } else {
+      console.error('[v0] subscribeToUserMood - Error:', error);
+    }
   });
 }
 
@@ -528,5 +625,45 @@ export function subscribeToLoveBites(userId: string, callback: (loveBite: any) =
     });
   }, (error) => {
     console.error('[v0] subscribeToLoveBites - Error:', error);
+  });
+}
+
+// --- RELATIONSHIP MANAGEMENT ---
+
+export async function getRelationship(userId: string) {
+  const q = query(
+    collection(db, 'relationships'),
+    where('participants', 'array-contains', userId)
+  );
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    return { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
+  }
+  return null;
+}
+
+export function subscribeToRelationship(userId: string, callback: (data: any) => void) {
+  const q = query(
+    collection(db, 'relationships'),
+    where('participants', 'array-contains', userId)
+  );
+  return onSnapshot(q, (snap) => {
+    if (!snap.empty) {
+      callback({ id: snap.docs[0].id, ...snap.docs[0].data() });
+    }
+  }, (error) => {
+    if (error.code === 'permission-denied') {
+      console.warn('[v0] subscribeToRelationship - Access denied. Check Firestore rules.');
+    } else {
+      console.error('[v0] subscribeToRelationship - Error:', error);
+    }
+  });
+}
+
+export async function updateAnniversary(relationshipId: string, date: string) {
+  const relRef = doc(db, 'relationships', relationshipId);
+  await updateDoc(relRef, {
+    anniversaryDate: date,
+    updatedAt: serverTimestamp()
   });
 }

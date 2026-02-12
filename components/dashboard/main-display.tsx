@@ -166,7 +166,9 @@ export function MainDisplay({
 
     return (
         <div
-            className={`glass-panel rounded-2xl border neon-border overflow-hidden transition-all duration-300 flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 rounded-none ' : 'h-[750px] mb-8'
+            className={`glass-panel rounded-2xl border neon-border overflow-hidden transition-all duration-500 flex flex-col ${isFullscreen
+                ? 'fixed inset-0 z-50 rounded-none'
+                : 'min-h-[500px] h-[75svh] sm:h-[650px] lg:h-[750px] mb-8 relative'
                 }`}
         >
             {/* SHARED SPACE HEADER */}
@@ -210,11 +212,11 @@ export function MainDisplay({
             </div>
 
             {/* NAVIGATION TABS */}
-            <div className="px-4 pt-4 shrink-0">
-                <div className="flex p-1 bg-black/20 border border-white/5 rounded-xl w-full sm:w-fit gap-1">
+            <div className="px-4 pt-2 shrink-0">
+                <div className="flex p-1 bg-black/20 border border-white/5 rounded-xl w-full overflow-x-auto scrollbar-hide gap-1">
                     <button
                         onClick={() => handleViewModeChange('graph')}
-                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${viewMode === 'graph'
+                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-[9px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-w-fit ${viewMode === 'graph'
                             ? 'bg-white/10 text-white shadow-lg border border-white/10'
                             : 'text-white/40 hover:text-white hover:bg-white/5'
                             }`}
@@ -224,7 +226,7 @@ export function MainDisplay({
                     </button>
                     <button
                         onClick={() => handleViewModeChange('video')}
-                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${viewMode === 'video'
+                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-[9px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-w-fit ${viewMode === 'video'
                             ? 'bg-white/10 text-white shadow-lg border border-white/10'
                             : 'text-white/40 hover:text-white hover:bg-white/5'
                             }`}
@@ -234,7 +236,7 @@ export function MainDisplay({
                     </button>
                     <button
                         onClick={() => handleViewModeChange('chat')}
-                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${viewMode === 'chat'
+                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-[9px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-w-fit ${viewMode === 'chat'
                             ? 'bg-white/10 text-white shadow-lg border border-white/10'
                             : 'text-white/40 hover:text-white hover:bg-white/5'
                             }`}
@@ -244,7 +246,7 @@ export function MainDisplay({
                     </button>
                     <button
                         onClick={() => handleViewModeChange('games')}
-                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${viewMode === 'games'
+                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-[9px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-w-fit ${viewMode === 'games'
                             ? 'bg-white/10 text-white shadow-lg border border-white/10'
                             : 'text-white/40 hover:text-white hover:bg-white/5'
                             }`}

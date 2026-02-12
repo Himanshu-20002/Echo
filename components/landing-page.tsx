@@ -42,6 +42,8 @@ export default function LandingPage() {
               src="/echo_logo.png"
               width={62}
               height={72}
+              priority
+              loading="eager"
             />
             <div className="flex items-center gap-3">
 
@@ -75,7 +77,7 @@ export default function LandingPage() {
         <main className="flex-1 ">
           {/* Hero Section */}
           <section className="relative flex flex-col items-center justify-center px-4  h-screen text-center overflow-hidden">
-            <HeroBackground />
+
 
             <div className="max-w-[840px] flex flex-col items-center gap-8 relative z-10">
               <div className="inline-flex items-center gap-2 rounded-full border border-accent-pink/20 bg-accent-pink/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-accent-pink">

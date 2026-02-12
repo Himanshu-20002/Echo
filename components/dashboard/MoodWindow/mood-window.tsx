@@ -164,10 +164,10 @@ export function MoodWindow({
       </div>
 
       {/* Premium Interaction Controls - Unified Single Row */}
-      <div className="flex flex-wrap gap-4 justify-center items-center p-4 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-xl">
+      <div className="flex flex-wrap gap-4 justify-center items-center p-4 sm:p-9 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-xl overflow-visible">
 
         {/* Mood Selector Group */}
-        <div className="flex flex-wrap gap-2 pr-4 border-r border-white/10">
+        <div className="flex w-full sm:w-auto overflow-x-auto scrollbar-hide gap-2 pb-2 sm:pb-0 sm:pr-4 sm:border-r border-white/10 shrink-0 px-3 sm:px-0">
           {(Object.keys(MOOD_COLORS) as MoodType[]).map((moodType) => {
             const isSelected = userMood.mood === moodType;
             const colors = MOOD_COLORS[moodType];
@@ -176,22 +176,22 @@ export function MoodWindow({
               <button
                 key={moodType}
                 onClick={() => onMoodChange?.(moodType)}
-                className={`group relative flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all duration-300 ${isSelected
-                  ? 'scale-105 shadow-lg'
+                className={`group relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all duration-300 min-w-fit shrink-0 ${isSelected
+                  ? 'scale-105 shadow-md'
                   : 'opacity-100 hover:opacity-100'
                   }`}
                 style={{
-                  backgroundColor: isSelected ? `${colors.primary}15` : 'rgba(226, 226, 226, 0.14)',
-                  border: `2px solid ${isSelected ? colors.primary : 'rgba(255,255,255,0.05)'}`,
-                  boxShadow: isSelected ? `0 0 15px ${colors.glow}` : 'none'
+                  backgroundColor: isSelected ? `${colors.primary}15` : 'rgba(255, 255, 255, 0.05)',
+                  border: `1.5px solid ${isSelected ? colors.primary : 'rgba(255,255,255,0.05)'}`,
+                  boxShadow: isSelected ? `0 0 10px ${colors.glow}` : 'none'
                 }}
               >
                 <div
-                  className="w-2 h-2 rounded-full"
+                  className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
                   style={{ backgroundColor: colors.primary }}
                 />
                 <span
-                  className="font-bold text-[9px] tracking-widest uppercase"
+                  className="font-bold text-[8px] sm:text-[9px] tracking-widest uppercase"
                   style={{ color: isSelected ? colors.primary : 'rgba(255,255,255,0.7)' }}
                 >
                   {MOOD_LABELS[moodType]}
@@ -202,29 +202,29 @@ export function MoodWindow({
         </div>
 
         {/* Primary Action Buttons */}
-        <div className="flex gap-4 pl-2">
+        <div className="flex gap-2 sm:gap-4 pl-0 sm:pl-2 w-full sm:w-auto justify-center px-3 sm:px-0">
           <button
             onClick={handleUserKiss}
             disabled={userSendingKiss}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 relative overflow-hidden ${userSendingKiss
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all duration-300 relative overflow-hidden ${userSendingKiss
               ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/40'
-              : 'bg-rose-500/10 text-red-500 border border-rose-500/30 hover:bg-rose-500/20'
+              : 'bg-rose-500/10 text-rose-500 border border-rose-500/30 hover:bg-rose-500/20'
               }`}
           >
-            <span className="text-sm text-red-500">♥</span>
-            {userSendingKiss ? 'Sending...' : 'Love Bite'}
+            <span className="text-xs sm:text-sm text-rose-500">♥</span>
+            <span className="truncate">{userSendingKiss ? 'Sending...' : 'Love Bite'}</span>
           </button>
 
           <button
             onClick={handlePartnerKiss}
             disabled={partnerSendingKiss}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 relative overflow-hidden ${partnerSendingKiss
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all duration-300 relative overflow-hidden ${partnerSendingKiss
               ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/40'
               : 'bg-white/5 text-teal-200 border border-white/10 hover:bg-teal-500/20'
               }`}
           >
-            <span className="text-sm">♥</span>
-            {partnerSendingKiss ? 'Received' : 'Kiss'}
+            <span className="text-xs sm:text-sm">♥</span>
+            <span className="truncate">{partnerSendingKiss ? 'Received' : 'Partner'}</span>
           </button>
         </div>
       </div>

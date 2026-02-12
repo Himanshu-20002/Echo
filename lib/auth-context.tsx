@@ -27,7 +27,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    if (result.user) {
+      const { syncUserProfile } = await import('./firestore-service');
+      await syncUserProfile(result.user);
+    }
   };
 
   const logout = async () => {

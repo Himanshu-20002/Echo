@@ -38,6 +38,13 @@ export function ChatInterface({ partnerId: initialPartnerId }: ChatInterfaceProp
     const [isLoading, setIsLoading] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    // Sync partnerId with prop when it becomes available
+    useEffect(() => {
+        if (initialPartnerId) {
+            setPartnerId(initialPartnerId);
+        }
+    }, [initialPartnerId]);
+
     // If no partnerId provided, try to find the most recent conversation
     useEffect(() => {
         const findPartner = async () => {
@@ -159,7 +166,7 @@ export function ChatInterface({ partnerId: initialPartnerId }: ChatInterfaceProp
     return (
         <div className="w-full h-full flex flex-col bg-black/20 rounded-xl overflow-hidden backdrop-blur-sm border border-white/5">
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] overscroll-contain">
                 {messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-white/30 space-y-2">
                         <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-2">

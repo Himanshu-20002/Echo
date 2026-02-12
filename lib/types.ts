@@ -17,6 +17,8 @@ export interface UserProfile {
   moodIntensity?: number;
   dailyLoveCount?: number;
   lastLoveResetDate?: string; // YYYY-MM-DD
+  anniversaryDate?: string; // ISO string
+  matchDate?: string; // ISO string
 }
 
 export interface Message {

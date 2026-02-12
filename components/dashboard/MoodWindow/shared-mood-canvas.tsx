@@ -21,10 +21,6 @@ interface FloatingHeart {
   maxLife: number
 }
 
-/**
- * Advanced Emotion Visualizer with Love Bite & Celebration
- * Renders animated characters with celebration hearts and kissing animations
- */
 export function SharedMoodCanvas({
   userMood,
   partnerMood,
@@ -39,24 +35,24 @@ export function SharedMoodCanvas({
   const timeRef = useRef(0)
   const heartsRef = useRef<FloatingHeart[]>([])
   const lastMoodMatchRef = useRef(false)
+  const kissStartTimeRef = useRef<number | null>(null)
+  const cinematicReachRef = useRef(0)
 
   const moodMatches = userMood === partnerMood
   const userColor = MOOD_COLORS[userMood]
   const partnerColor = MOOD_COLORS[partnerMood]
-  const sharedMessage = MOOD_MESSAGES[moodMatches ? userMood : 'calm']
 
   // Generate celebration hearts when moods just matched
   useEffect(() => {
     if (moodMatches && !lastMoodMatchRef.current) {
       const canvas = canvasRef.current
       if (canvas) {
-        // Create celebration hearts
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 10; i++) {
           heartsRef.current.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
             life: 0,
-            maxLife: 60,
+            maxLife: 100 + Math.random() * 50,
           })
         }
       }
@@ -68,11 +64,19 @@ export function SharedMoodCanvas({
     const canvas = canvasRef.current
     if (!canvas || reducedMotion) return
 
-    const rect = canvas.parentElement?.getBoundingClientRect()
-    if (!rect) return
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        canvas.width = entry.contentRect.width
+        canvas.height = entry.contentRect.height
+      }
+    })
 
-    canvas.width = rect.width
-    canvas.height = rect.height
+    if (canvas.parentElement) {
+      observer.observe(canvas.parentElement)
+    }
+
+    return () => observer.disconnect()
   }, [reducedMotion])
 
   useEffect(() => {
@@ -80,80 +84,78 @@ export function SharedMoodCanvas({
 
     const animate = () => {
       const canvas = canvasRef.current
-      if (!canvas) {
+      const ctx = canvas?.getContext('2d', { alpha: true })
+      if (!canvas || !ctx) {
         animationRef.current = requestAnimationFrame(animate)
         return
       }
-
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        animationRef.current = requestAnimationFrame(animate)
-        return
-      }
-
-      // Clear canvas (transparent for glass theme)
 
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       const time = timeRef.current * 0.016
       const centerX = canvas.width / 2
       const centerY = canvas.height / 2
-
-      // Calculate responsive scale based on height
       const baseScale = (canvas.height / 400) * 1.2
-
-      // Draw emotional characters - Increased spacing for better aesthetics
       const horizontalOffset = canvas.width * 0.29
 
-      ///increase the gap
+      // Cinematic "Reach & Look" - move closer and tilt towards each other during Love Bite
+      const isKissing = userSendingKiss || partnerSendingKiss;
+      if (isKissing && kissStartTimeRef.current === null) kissStartTimeRef.current = timeRef.current;
+      else if (!isKissing) kissStartTimeRef.current = null;
 
-      drawEmotionalCharacter(
-        ctx,
-        centerX - horizontalOffset,
-        centerY,
-        userMood,
-        userColor,
-        userIntensity,
-        time,
-        userSendingKiss,
-        'user',
-        baseScale
-      )
+      // Smooth interpolation - fixes the 'teleportation' bug
+      const targetReach = isKissing ? 1 : 0;
+      cinematicReachRef.current += (targetReach - cinematicReachRef.current) * 0.06;
 
-      drawEmotionalCharacter(
-        ctx,
-        centerX + horizontalOffset,
-        centerY,
-        partnerMood,
-        partnerColor,
-        partnerIntensity,
-        time,
-        partnerSendingKiss,
-        'partner',
-        baseScale
-      )
+      const ease = cinematicReachRef.current * (2 - cinematicReachRef.current);
+      const approach = ease * (canvas.width * 0.12);
+      const lookTilt = ease * 0.25;
 
-      // Draw connection line when moods align
+      // Physics - smoother, slower movement
+      const userFX = Math.cos(time * 0.5) * 10 * baseScale + approach
+      const userFY = Math.sin(time * 0.6) * 14 * baseScale
+      const userRot = (Math.sin(time * 0.4) * 0.12) + lookTilt
+
+      const partFX = Math.cos(time * 0.3 + 2) * 10 * baseScale - approach
+      const partFY = Math.sin(time * 0.7 + 1) * 14 * baseScale
+      const partRot = (Math.cos(time * 0.35 + 0.5) * 0.12) - lookTilt
+
+      // Render loop optimization: Group by character
+      drawEmotionalCharacter(ctx, centerX - horizontalOffset + userFX, centerY + userFY, userMood, userColor, userIntensity, time, userSendingKiss, baseScale, userRot)
+      drawMoodEmotes(ctx, centerX - horizontalOffset + userFX, centerY + userFY, userMood, userColor, time, baseScale, userSendingKiss)
+
+      drawEmotionalCharacter(ctx, centerX + horizontalOffset + partFX, centerY + partFY, partnerMood, partnerColor, partnerIntensity, time, partnerSendingKiss, baseScale, partRot)
+      drawMoodEmotes(ctx, centerX + horizontalOffset + partFX, centerY + partFY, partnerMood, partnerColor, time + 2, baseScale, partnerSendingKiss)
+
       if (moodMatches) {
-        drawHeartConnection(ctx, centerX - horizontalOffset, centerY, centerX + horizontalOffset, centerY, userColor, time)
+        drawHeartConnection(ctx, centerX - horizontalOffset + userFX, centerY + userFY, centerX + horizontalOffset + partFX, centerY + partFY, userColor, time)
       }
 
-      // Draw kissing animation with emotion transfer when love bite is sent
-      if (userSendingKiss || partnerSendingKiss) {
-        drawKissingAnimation(
-          ctx,
-          centerX - horizontalOffset,
-          centerY,
-          centerX + horizontalOffset,
-          centerY,
-          time,
-          userSendingKiss,
-        )
+      // Celebration hearts - optimized count
+      if (moodMatches && heartsRef.current.length < 25 && timeRef.current % 15 === 0) {
+        heartsRef.current.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          life: 0,
+          maxLife: 120 + Math.random() * 60,
+        })
       }
 
-      // Update and draw floating celebration hearts
+      // Kiss animation
+      if (isKissing) {
+        const kissElapsed = (timeRef.current - (kissStartTimeRef.current || timeRef.current)) * 0.016
+        drawKissingAnimation(ctx, centerX - horizontalOffset + userFX, centerY + userFY, centerX + horizontalOffset + partFX, centerY + partFY, kissElapsed, userSendingKiss)
+      }
+
+      // Update hearts - slow and smooth normally, energetic during Love Bite
+      const heartLifeSpeed = (userSendingKiss || partnerSendingKiss) ? 1.7 : 0.7;
       heartsRef.current = heartsRef.current.filter((heart) => {
-        heart.life += 1
+        heart.life += heartLifeSpeed
+        if (moodMatches && heart.life >= heart.maxLife) {
+          heart.life = 0
+          heart.x = Math.random() * canvas.width
+          heart.y = Math.random() * canvas.height
+        }
         if (heart.life < heart.maxLife) {
           drawCelebrationHeart(ctx, heart, userColor)
           return true
@@ -166,690 +168,176 @@ export function SharedMoodCanvas({
     }
 
     animationRef.current = requestAnimationFrame(animate)
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
-    }
+    return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current) }
   }, [userMood, partnerMood, userIntensity, partnerIntensity, moodMatches, userColor, partnerColor, reducedMotion, userSendingKiss, partnerSendingKiss])
 
-  useEffect(() => {
-    const handleResize = () => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-
-      const rect = canvas.parentElement?.getBoundingClientRect()
-      if (rect) {
-        canvas.width = rect.width
-        canvas.height = rect.height
-      }
-    }
-
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-full"
-      style={{
-        display: 'block',
-      }}
-    />
-  )
+  return <canvas ref={canvasRef} className="w-full h-full block" />
 }
 
-function drawEmotionalCharacter(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  mood: MoodType,
-  color: { primary: string; secondary: string },
-  intensity: number,
-  time: number,
-  isSendingKiss: boolean,
-  side: 'user' | 'partner',
-  baseScale: number = 1
-) {
+/** 
+ * OPTIMIZED RENDERING FUNCTIONS
+ * Goal: Minimize ctx calls, remove shadowBlur, use simple paths
+ */
+
+function drawEmotionalCharacter(ctx: CanvasRenderingContext2D, x: number, y: number, mood: MoodType, color: { primary: string }, intensity: number, time: number, isKiss: boolean, baseScale: number, rotation: number) {
   ctx.save()
   ctx.translate(x, y)
-
+  ctx.rotate(rotation)
   const scale = (0.8 + (intensity / 5) * 0.4) * baseScale
 
-  // Draw mouth adjustment for kissing
-  if (isSendingKiss) {
-    // Mouth will be drawn in kissing position
-  }
+  ctx.strokeStyle = color.primary
+  ctx.fillStyle = color.primary
+  ctx.lineWidth = 3 * scale
+  ctx.lineCap = 'round'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
 
   switch (mood) {
-    case 'love': {
-      drawLoveCharacter(ctx, scale, intensity, time, color, isSendingKiss, side)
-      break
-    }
-    case 'happy': {
-      drawHappyCharacter(ctx, scale, intensity, time, color, isSendingKiss, side)
-      break
-    }
-    case 'calm': {
-      drawCalmCharacter(ctx, scale, intensity, time, color, isSendingKiss, side)
-      break
-    }
-    case 'sad': {
-      drawSadCharacter(ctx, scale, intensity, time, color, isSendingKiss, side)
-      break
-    }
-    case 'angry': {
-      drawAngryCharacter(ctx, scale, intensity, time, color, isSendingKiss, side)
-      break
-    }
+    case 'love': drawLove(ctx, scale, time, isKiss); break
+    case 'happy': drawHappy(ctx, scale, intensity, time); break
+    case 'calm': drawCalm(ctx, scale, time); break
+    case 'sad': drawSad(ctx, scale, time); break
+    case 'angry': drawAngry(ctx, scale, intensity, time); break
   }
-
   ctx.restore()
 }
 
-function drawLoveCharacter(
-  ctx: CanvasRenderingContext2D,
-  scale: number,
-  intensity: number,
-  time: number,
-  color: { primary: string; secondary: string },
-  isSendingKiss: boolean,
-  side: 'user' | 'partner',
-) {
-  ctx.strokeStyle = color.primary
-  ctx.fillStyle = color.primary
-  ctx.lineWidth = 3.5 * scale
+function drawLove(ctx: CanvasRenderingContext2D, scale: number, time: number, isKiss: boolean) {
+  // Head
+  ctx.beginPath(); ctx.arc(0, -28 * scale, 14 * scale, 0, 6.28); ctx.stroke()
 
-  // Head with glow
-  ctx.shadowColor = color.primary
-  ctx.shadowBlur = 15 * scale
-  ctx.beginPath()
-  ctx.arc(0, -28 * scale, 14 * scale, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.shadowColor = 'transparent'
-
-  // Heart icon in head - pulsing
-  const heartPulse = Math.sin(time * 2.5) * 0.5 + 1.2
-  ctx.fillStyle = color.primary
-  ctx.font = `bold ${20 * scale * heartPulse}px Arial`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('♥', 0, -28 * scale)
-
-  // Mouth - smile or kiss lips
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 3 * scale
-  if (isSendingKiss) {
-    // Kiss mouth - small puckered lips
-    ctx.fillStyle = color.primary
-    ctx.beginPath()
-    ctx.arc(0, -16 * scale, 3 * scale, 0, Math.PI * 2)
-    ctx.fill()
-  } else {
-    // Smile
-    ctx.beginPath()
-    ctx.arc(0, -18 * scale, 6 * scale, 0, Math.PI)
-    ctx.stroke()
-  }
-
-  // Arms reaching out or pulling in for kiss
-  let armAngle = Math.sin(time * 1.5) * 0.4
-  let armLift = Math.sin(time * 1.5) * 4
-
-  if (isSendingKiss) {
-    armAngle = side === 'user' ? 0.6 : -0.6
-    armLift = Math.sin(time * 3) * 2
-  }
-
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 3.5 * scale
-  ctx.lineCap = 'round'
-
-  ctx.beginPath()
-  ctx.moveTo(-14 * scale, -10 * scale)
-  ctx.lineTo(-28 * scale - Math.cos(armAngle) * 12 * scale, -6 * scale + Math.sin(armAngle) * 10 * scale + armLift)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(14 * scale, -10 * scale)
-  ctx.lineTo(28 * scale + Math.cos(armAngle) * 12 * scale, -6 * scale + Math.sin(armAngle) * 10 * scale + armLift)
-  ctx.stroke()
-
-  // Body
-  ctx.beginPath()
-  ctx.moveTo(0, 0)
-  ctx.lineTo(-8 * scale, 24 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(0, 0)
-  ctx.lineTo(8 * scale, 24 * scale)
-  ctx.stroke()
-
-  // Legs
-  ctx.beginPath()
-  ctx.moveTo(-8 * scale, 24 * scale)
-  ctx.lineTo(-8 * scale, 38 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(8 * scale, 24 * scale)
-  ctx.lineTo(8 * scale, 38 * scale)
-  ctx.stroke()
+  // Face heart - Positioned higher as per user preference
+  const hS = 1.1 + Math.sin(time * 2) * 0.15
+  ctx.font = `bold ${20 * scale * hS}px Arial`
+  ctx.fillText('♥', 0, -28 * scale - 15)
+  // Mouth
+  if (isKiss) { ctx.beginPath(); ctx.arc(0, -16 * scale, 4 * scale, 0, 6.28); ctx.fill() }
+  else { ctx.beginPath(); ctx.arc(0, -18 * scale, 7 * scale, 0, Math.PI); ctx.stroke() }
+  // Stick arms
+  const s = Math.sin(time * 1) * 2; const r = isKiss ? 1.3 : 1
+  ctx.beginPath(); ctx.moveTo(-14 * scale, -10 * scale); ctx.lineTo(-28 * scale * r, -6 * scale + s); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(14 * scale, -10 * scale); ctx.lineTo(28 * scale * r, -6 * scale + s); ctx.stroke()
+  // Body & Legs
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-8 * scale, 24 * scale); ctx.lineTo(-8 * scale, 38 * scale); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(8 * scale, 24 * scale); ctx.lineTo(8 * scale, 38 * scale); ctx.stroke()
 }
 
-function drawHappyCharacter(
-  ctx: CanvasRenderingContext2D,
-  scale: number,
-  intensity: number,
-  time: number,
-  color: { primary: string; secondary: string },
-  isSendingKiss: boolean,
-  side: 'user' | 'partner',
-) {
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 3.5 * scale
-
-  const jumpHeight = Math.sin(time * 2.2) * 16 * scale * intensity
-  const jumpY = Math.max(0, jumpHeight)
-
-  // Head with glow
-  ctx.shadowColor = color.primary
-  ctx.shadowBlur = 15 * scale
-  ctx.beginPath()
-  ctx.arc(0, -28 * scale + jumpY, 14 * scale, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.shadowColor = 'transparent'
-
-  // Star/spark icon in head - radiating
-  ctx.fillStyle = color.primary
+function drawHappy(ctx: CanvasRenderingContext2D, scale: number, intensity: number, time: number) {
+  const jumpY = Math.min(0, Math.sin(time * 6.5) * 22 * scale * intensity)
+  ctx.beginPath(); ctx.arc(0, -28 * scale + jumpY, 14 * scale, 0, 6.28); ctx.stroke()
   ctx.font = `bold ${24 * scale}px Arial`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
   ctx.fillText('✦', 0, -28 * scale + jumpY)
-
-  // Big smile
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 3 * scale
-  ctx.beginPath()
-  ctx.arc(0, -16 * scale + jumpY, 8 * scale, 0, Math.PI)
-  ctx.stroke()
-
-  // Arms up in celebration
-  const armHeight = Math.sin(time * 2.8) * 14 * scale * intensity
-  ctx.lineWidth = 3.5 * scale
-  ctx.lineCap = 'round'
-
-  ctx.beginPath()
-  ctx.moveTo(-14 * scale, -8 * scale + jumpY)
-  ctx.lineTo(-26 * scale, -32 * scale + jumpY - Math.abs(armHeight))
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(14 * scale, -8 * scale + jumpY)
-  ctx.lineTo(26 * scale, -32 * scale + jumpY - Math.abs(armHeight))
-  ctx.stroke()
-
-  // Body
-  ctx.lineWidth = 3.5 * scale
-  ctx.beginPath()
-  ctx.moveTo(0, jumpY)
-  ctx.lineTo(-9 * scale, 22 * scale + jumpY)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(0, jumpY)
-  ctx.lineTo(9 * scale, 22 * scale + jumpY)
-  ctx.stroke()
-
-  // Legs
-  ctx.beginPath()
-  ctx.moveTo(-9 * scale, 22 * scale + jumpY)
-  ctx.lineTo(-9 * scale, 36 * scale + jumpY)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(9 * scale, 22 * scale + jumpY)
-  ctx.lineTo(9 * scale, 36 * scale + jumpY)
-  ctx.stroke()
+  ctx.beginPath(); ctx.arc(0, -16 * scale + jumpY, 8 * scale, 0, Math.PI); ctx.stroke()
+  const aH = Math.sin(time * 2.8) * 14 * scale * intensity
+  ctx.beginPath(); ctx.moveTo(-14 * scale, -8 * scale + jumpY); ctx.lineTo(-26 * scale, -32 * scale + jumpY - Math.abs(aH)); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(14 * scale, -8 * scale + jumpY); ctx.lineTo(26 * scale, -32 * scale + jumpY - Math.abs(aH)); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, jumpY); ctx.lineTo(-9 * scale, 22 * scale); ctx.lineTo(-9 * scale, 36 * scale); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, jumpY); ctx.lineTo(9 * scale, 22 * scale); ctx.lineTo(9 * scale, 36 * scale); ctx.stroke()
 }
 
-function drawCalmCharacter(
-  ctx: CanvasRenderingContext2D,
-  scale: number,
-  intensity: number,
-  time: number,
-  color: { primary: string; secondary: string },
-  isSendingKiss: boolean,
-  side: 'user' | 'partner',
-) {
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 3.5 * scale
-  ctx.lineCap = 'round'
-
-  const sway = Math.sin(time * 0.7) * 4 * scale
-  const headTilt = Math.sin(time * 0.8) * 0.1
-
-  // Head with glow
-  ctx.save()
-  ctx.rotate(headTilt)
-  ctx.shadowColor = color.primary
-  ctx.shadowBlur = 12 * scale
-  ctx.beginPath()
-  ctx.arc(0, -28 * scale, 14 * scale, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.shadowColor = 'transparent'
-  ctx.restore()
-
-  // Circle/zen icon in head - peaceful
-  ctx.fillStyle = color.primary
-  ctx.font = `bold ${22 * scale}px Arial`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.save()
-  ctx.rotate(headTilt)
-  ctx.fillText('◎', 0, -28 * scale)
-  ctx.restore()
-
-  // Serene smile
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 3 * scale
-  ctx.beginPath()
-  ctx.arc(0, -16 * scale, 6 * scale, 0, Math.PI)
-  ctx.stroke()
-
-  // Relaxed body with gentle sway
-  ctx.lineWidth = 3.5 * scale
-  ctx.beginPath()
-  ctx.moveTo(sway, 0)
-  ctx.lineTo(sway - 8 * scale, 24 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(sway, 0)
-  ctx.lineTo(sway + 8 * scale, 24 * scale)
-  ctx.stroke()
-
-  // Relaxed arms at sides
-  ctx.beginPath()
-  ctx.moveTo(-14 * scale, -6 * scale)
-  ctx.lineTo(-18 * scale + sway, 10 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(14 * scale, -6 * scale)
-  ctx.lineTo(18 * scale + sway, 10 * scale)
-  ctx.stroke()
-
-  // Legs
-  ctx.beginPath()
-  ctx.moveTo(sway - 8 * scale, 24 * scale)
-  ctx.lineTo(sway - 8 * scale, 38 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(sway + 8 * scale, 24 * scale)
-  ctx.lineTo(sway + 8 * scale, 38 * scale)
-  ctx.stroke()
+function drawCalm(ctx: CanvasRenderingContext2D, scale: number, time: number) {
+  const breath = Math.sin(time * 0.4) * 0.05 + 1; const sc = scale * breath; const sway = Math.sin(time * 0.25) * 15 * sc
+  ctx.globalAlpha = (2 - ((time * 0.5) % 2)) * 0.1
+  ctx.beginPath(); ctx.arc(0, 0, (40 + ((time * 0.5) % 2) * 60) * sc, 0, 6.28); ctx.stroke(); ctx.globalAlpha = 1
+  ctx.beginPath(); ctx.arc(sway * 0.2, -28 * sc, 14 * sc, 0, 6.28); ctx.stroke()
+  ctx.font = `bold ${24 * sc}px Arial`
+  ctx.fillText('◎', sway * 0.2, -28 * sc)
+  ctx.beginPath(); ctx.arc(sway * 0.2, -18 * sc, 5 * sc, 0, Math.PI); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(sway, 12 * sc, sway, 20 * sc, 0, 38 * sc); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(-14 * sc, -8 * sc); ctx.lineTo(-24 * sc + sway * 0.5, 5 * sc); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(14 * sc, -8 * sc); ctx.lineTo(24 * sc + sway * 0.5, 5 * sc); ctx.stroke()
 }
 
-function drawSadCharacter(
-  ctx: CanvasRenderingContext2D,
-  scale: number,
-  intensity: number,
-  time: number,
-  color: { primary: string; secondary: string },
-  isSendingKiss: boolean,
-  side: 'user' | 'partner',
-) {
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 3.5 * scale
-
-  // Head down and sad
-  ctx.shadowColor = color.primary
-  ctx.shadowBlur = 12 * scale
-  ctx.beginPath()
-  ctx.arc(0, -22 * scale, 14 * scale, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.shadowColor = 'transparent'
-
-  // Tear drop icon in head - emotional
-  ctx.fillStyle = color.primary
+function drawSad(ctx: CanvasRenderingContext2D, scale: number, time: number) {
+  const sway = Math.sin(time * 0.8) * 2 * scale
+  ctx.beginPath(); ctx.arc(sway, -22 * scale, 14 * scale, 0, 6.28); ctx.stroke()
   ctx.font = `bold ${26 * scale}px Arial`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('◇', 0, -22 * scale)
-
-  // Sad frown
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 3 * scale
-  ctx.beginPath()
-  ctx.arc(0, -12 * scale, 6 * scale, Math.PI, 0)
-  ctx.stroke()
-
-  // Teardrops - falling with gravity
-  const tearDrop = Math.sin(time * 1.8) * 5 * scale + Math.max(0, Math.sin(time * 0.9) * 3 * scale)
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 2.5 * scale
-  ctx.beginPath()
-  ctx.moveTo(-6 * scale, -8 * scale)
-  ctx.lineTo(-6 * scale, -8 * scale + 12 * scale + tearDrop)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(6 * scale, -8 * scale)
-  ctx.lineTo(6 * scale, -8 * scale + 12 * scale + tearDrop)
-  ctx.stroke()
-
-  // Slumped body - drooping
-  const slump = Math.sin(time * 0.6) * 3
-  ctx.lineWidth = 3.5 * scale
-  ctx.beginPath()
-  ctx.moveTo(slump, 0)
-  ctx.lineTo(slump - 7 * scale, 24 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(slump, 0)
-  ctx.lineTo(slump + 7 * scale, 24 * scale)
-  ctx.stroke()
-
-  // Arms down and inward - protecting
-  ctx.beginPath()
-  ctx.moveTo(-14 * scale, -4 * scale)
-  ctx.lineTo(-16 * scale, 14 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(14 * scale, -4 * scale)
-  ctx.lineTo(16 * scale, 14 * scale)
-  ctx.stroke()
-
-  // Legs
-  ctx.beginPath()
-  ctx.moveTo(slump - 7 * scale, 24 * scale)
-  ctx.lineTo(slump - 7 * scale, 38 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(slump + 7 * scale, 24 * scale)
-  ctx.lineTo(slump + 7 * scale, 38 * scale)
-  ctx.stroke()
+  ctx.fillText('◇', sway, -22 * scale)
+  ctx.beginPath(); ctx.arc(sway, -12 * scale, 6 * scale, Math.PI, 0); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-8 * scale, 24 * scale); ctx.lineTo(-8 * scale, 38 * scale); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(8 * scale, 24 * scale); ctx.lineTo(8 * scale, 38 * scale); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(-14 * scale, -4 * scale); ctx.lineTo(-18 * scale, 12 * scale); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(14 * scale, -4 * scale); ctx.lineTo(18 * scale, 12 * scale); ctx.stroke()
 }
 
-function drawAngryCharacter(
-  ctx: CanvasRenderingContext2D,
-  scale: number,
-  intensity: number,
-  time: number,
-  color: { primary: string; secondary: string },
-  isSendingKiss: boolean,
-  side: 'user' | 'partner',
-) {
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 4 * scale
-  ctx.lineCap = 'round'
-
-  const headShake = Math.sin(time * 3.5) * 2.5 * scale * intensity
-
-  // Head - tense and glowing
-  ctx.shadowColor = color.primary
-  ctx.shadowBlur = 18 * scale
-  ctx.beginPath()
-  ctx.arc(headShake, -28 * scale, 14 * scale, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.shadowColor = 'transparent'
-
-  // Lightning bolt / energy icon in head
-  ctx.fillStyle = color.primary
+function drawAngry(ctx: CanvasRenderingContext2D, scale: number, intensity: number, time: number) {
+  const shake = Math.sin(time * 12) * 3.5 * scale * intensity
+  ctx.beginPath(); ctx.arc(shake, -28 * scale, 14 * scale, 0, 6.28); ctx.stroke()
   ctx.font = `bold ${28 * scale}px Arial`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('⚡', headShake, -28 * scale)
-
-  // Angry frown - sharp
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 3 * scale
-  ctx.beginPath()
-  ctx.arc(headShake, -14 * scale, 6 * scale, Math.PI, 0)
-  ctx.stroke()
-
-  // Tense body - rigid
-  ctx.lineWidth = 4 * scale
-  ctx.beginPath()
-  ctx.moveTo(headShake, 0)
-  ctx.lineTo(headShake - 9 * scale, 22 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(headShake, 0)
-  ctx.lineTo(headShake + 9 * scale, 22 * scale)
-  ctx.stroke()
-
-  // Fists clenched with tension
-  const fistTense = Math.sin(time * 3.8) * 4 * scale * intensity
-  ctx.beginPath()
-  ctx.moveTo(-16 * scale + headShake, -8 * scale)
-  ctx.lineTo(-28 * scale + headShake - fistTense, 6 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(16 * scale + headShake, -8 * scale)
-  ctx.lineTo(28 * scale + headShake + fistTense, 6 * scale)
-  ctx.stroke()
-
-  // Fist circles - clenched
-  ctx.beginPath()
-  ctx.arc(-28 * scale + headShake - fistTense, 6 * scale, 4 * scale, 0, Math.PI * 2)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.arc(28 * scale + headShake + fistTense, 6 * scale, 4 * scale, 0, Math.PI * 2)
-  ctx.stroke()
-
-  // Legs - grounded stance
-  ctx.beginPath()
-  ctx.moveTo(headShake - 9 * scale, 22 * scale)
-  ctx.lineTo(headShake - 9 * scale, 36 * scale)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(headShake + 9 * scale, 22 * scale)
-  ctx.lineTo(headShake + 9 * scale, 36 * scale)
-  ctx.stroke()
+  ctx.fillText('⚡', shake, -28 * scale)
+  ctx.beginPath(); ctx.arc(shake, -14 * scale, 6 * scale, Math.PI, 0); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(shake, 0); ctx.lineTo(shake - 9 * scale, 22 * scale); ctx.lineTo(shake - 9 * scale, 36 * scale); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(shake, 0); ctx.lineTo(shake + 9 * scale, 22 * scale); ctx.lineTo(shake + 9 * scale, 36 * scale); ctx.stroke()
+  const f = Math.sin(time * 3.8) * 4 * scale * intensity
+  ctx.beginPath(); ctx.moveTo(-16 * scale + shake, -8 * scale); ctx.lineTo(-28 * scale + shake - f, 6 * scale); ctx.arc(-28 * scale + shake - f, 6 * scale, 4 * scale, 0, 6.28); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(16 * scale + shake, -8 * scale); ctx.lineTo(28 * scale + shake + f, 6 * scale); ctx.arc(28 * scale + shake + f, 6 * scale, 4 * scale, 0, 6.28); ctx.stroke()
 }
 
-function drawHeartConnection(
-  ctx: CanvasRenderingContext2D,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  color: { primary: string; secondary: string },
-  time: number,
-) {
-  ctx.strokeStyle = color.primary
-  ctx.lineWidth = 2
-  ctx.globalAlpha = 0.6 + Math.sin(time * 2) * 0.2
-
-  const steps = 30
-  const baseY = (y1 + y2) / 2
-  const wave = Math.sin(time * 2) * 8
-
-  ctx.beginPath()
-  for (let i = 0; i <= steps; i++) {
-    const px = x1 + ((x2 - x1) / steps) * i
-    const py = baseY + Math.sin((i / steps) * Math.PI * 4 + time * 2.5) * 6 + wave
-    if (i === 0) ctx.moveTo(px, py)
-    else ctx.lineTo(px, py)
+function drawMoodEmotes(ctx: CanvasRenderingContext2D, x: number, y: number, mood: MoodType, color: { primary: string }, time: number, baseScale: number, isKiss: boolean) {
+  const dict: Record<string, string[]> = {
+    love: ['♥', '♡', '♡'], happy: ['⭐', '✨', '☀'], calm: ['🫧', '❄', '☽'],
+    sad: ['💧', '☁', '🌧'], angry: ['⚡', '💢', '🔥']
   }
-  ctx.stroke()
-
-  ctx.globalAlpha = 1.0
+  const em = dict[mood] || ['✨']
+  const spd = isKiss ? 2.8 : 1
+  ctx.save(); ctx.translate(x, y); ctx.fillStyle = color.primary; ctx.textAlign = 'center'
+  em.forEach((s, i) => {
+    const a = time * spd + i * (6.28 / em.length); const r = (65 * baseScale) + Math.sin(time * 3 + i) * 12
+    const sc = (0.6 + Math.sin(time * 5 + i) * 0.2) * baseScale
+    ctx.globalAlpha = 0.4 + Math.sin(time * 1.5 + i) * 0.1
+    ctx.font = `${20 * sc}px Arial`; ctx.fillText(s, Math.cos(a) * r, Math.sin(a) * r)
+  })
+  ctx.restore()
 }
 
-function drawCelebrationHeart(
-  ctx: CanvasRenderingContext2D,
-  heart: FloatingHeart,
-  color: { primary: string; secondary: string },
-) {
-  const opacity = 1 - heart.life / heart.maxLife
-  ctx.globalAlpha = opacity
-
-  // Floating heart animation
-  const floatY = Math.sin(heart.life * 0.1) * 5
-  const scale = opacity * 0.8 + 0.2
-
-  ctx.fillStyle = color.primary
-  ctx.font = `bold ${14 * scale}px Arial`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('♥', heart.x, heart.y + floatY)
-
-  ctx.globalAlpha = 1.0
+function drawHeartConnection(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, color: { primary: string }, time: number) {
+  ctx.globalAlpha = 0.5; ctx.strokeStyle = color.primary; ctx.lineWidth = 2; ctx.beginPath()
+  const bY = (y1 + y2) / 2; const w = Math.sin(time * 2) * 8
+  for (let i = 0; i <= 20; i++) {
+    const px = x1 + ((x2 - x1) / 20) * i
+    const py = bY + Math.sin((i / 20) * 12.56 + time * 2.5) * 6 + w
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py)
+  }
+  ctx.stroke(); ctx.globalAlpha = 1
 }
 
-function drawKissingAnimation(
-  ctx: CanvasRenderingContext2D,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  time: number,
-  userSendingKiss: boolean,
-) {
-  // Determine direction and color of energy flow
-  const sourceX = userSendingKiss ? x1 : x2
-  const sourceY = userSendingKiss ? y1 : y2
-  const targetX = userSendingKiss ? x2 : x1
-  const targetY = userSendingKiss ? y2 : y1
-  const sourceColor = userSendingKiss ? '#E94B7F' : '#6BA896'
-  const targetColor = userSendingKiss ? '#6BA896' : '#E94B7F'
+function drawCelebrationHeart(ctx: CanvasRenderingContext2D, h: FloatingHeart, color: { primary: string }) {
+  const op = h.life < 20 ? h.life / 20 : (h.maxLife - h.life < 20 ? (h.maxLife - h.life) / 20 : 1)
+  ctx.globalAlpha = op * 0.4; ctx.fillStyle = color.primary; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'
+  // Slower, smoother floating frequencies
+  ctx.fillText('♥', h.x + Math.cos(h.life * 0.02) * 4, h.y + Math.sin(h.life * 0.025) * 8); ctx.globalAlpha = 1
+}
 
-  // Draw multiple streams of energy particles flowing from sender to receiver
-  const streamCount = 5
-  const particlesPerStream = 12
+function drawKissingAnimation(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, el: number, isU: boolean) {
+  const sX = isU ? x1 : x2; const sY = isU ? y1 : y2; const tX = isU ? x2 : x1; const tY = isU ? y2 : y1
+  const color = isU ? '#E94B7F' : '#6BA896'
 
-  for (let stream = 0; stream < streamCount; stream++) {
-    const streamOffset = (stream / streamCount) * 0.3 - 0.15
-    const streamStartY = sourceY + streamOffset * 40
-
-    for (let i = 0; i < particlesPerStream; i++) {
-      const progress = ((time * 70 + i * (120 / particlesPerStream)) % 120) / 120
-      if (progress > 1) continue
-
-      // Calculate particle position along the path
-      const easeProgress = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress
-      const x = sourceX + (targetX - sourceX) * easeProgress
-      const y = streamStartY + (targetY - streamStartY) * easeProgress
-
-      // Particle grows then shrinks
-      const sizeProgress = Math.sin(progress * Math.PI)
-      const size = 8 * sizeProgress + 3
-
-      // Color transitions from source to target
-      const colorLerp = progress
-      const r1 = parseInt(sourceColor.substring(1, 3), 16)
-      const g1 = parseInt(sourceColor.substring(3, 5), 16)
-      const b1 = parseInt(sourceColor.substring(5, 7), 16)
-
-      const r2 = parseInt(targetColor.substring(1, 3), 16)
-      const g2 = parseInt(targetColor.substring(3, 5), 16)
-      const b2 = parseInt(targetColor.substring(5, 7), 16)
-
-      const r = Math.floor(r1 + (r2 - r1) * colorLerp)
-      const g = Math.floor(g1 + (g2 - g1) * colorLerp)
-      const b = Math.floor(b1 + (b2 - b1) * colorLerp)
-      const particleColor = `rgb(${r}, ${g}, ${b})`
-
-      // Draw glowing particle with halo
-      ctx.shadowColor = particleColor
-      ctx.shadowBlur = 25
-      ctx.globalAlpha = (1 - progress) * 0.9
-      ctx.fillStyle = particleColor
-      ctx.beginPath()
-      ctx.arc(x, y, size, 0, Math.PI * 2)
-      ctx.fill()
-
-      // Bright inner core
-      ctx.shadowBlur = 0
-      ctx.globalAlpha = (1 - progress) * 0.6
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.arc(x, y, size * 0.5, 0, Math.PI * 2)
-      ctx.fill()
+  // Energy Beam Particles
+  for (let s = 0; s < 2; s++) {
+    const sOff = (s / 2) * 40 - 20; const sY_ = sY + sOff
+    for (let i = 0; i < 6; i++) {
+      const p = ((el * 400 + i * 20) % 120) / 120; if (p > 1) continue
+      const eP = Math.pow(p, 1.2); const x = sX + (tX - sX) * eP; const y = sY_ + (tY - sY_) * eP
+      const sz = 2 + Math.sin(p * 3.14) * 4
+      ctx.globalAlpha = (1 - p) * 0.8; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, sz, 0, 6.28); ctx.fill()
+      ctx.globalAlpha = (1 - p); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, sz * 0.4, 0, 6.28); ctx.fill()
     }
   }
 
-  ctx.shadowColor = 'transparent'
-  ctx.shadowBlur = 0
+  const mX = (sX + tX) / 2; const mY = (sY + tY) / 2; const hP = 1 + Math.sin(el * 15) * 0.2
 
-  // Draw the kiss mark at meeting point - stays bright and visible
-  const meetingX = (sourceX + targetX) / 2
-  const meetingY = (sourceY + targetY) / 2
-
-  // Central heart stays bright and visible throughout
-  ctx.globalAlpha = 0.95
-  ctx.shadowColor = sourceColor
-  ctx.shadowBlur = 40
-  ctx.fillStyle = sourceColor
-  ctx.font = 'bold 48px Arial'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('♥', meetingX, meetingY)
-
-  // Extra outer glow for center heart
-  ctx.shadowBlur = 60
-  ctx.globalAlpha = 0.6
-  ctx.fillText('♥', meetingX, meetingY)
-
-  // Radiate glowing hearts outward from the kiss point - very long duration
-  const heartCount = 8
-  const maxDistance = 500 // Hearts expand far off screen
-  const expansionTime = 500 // Very long expansion - stays visible much longer
-  // DO NOT use modulo - let animation play once and stay visible
-  let progress = Math.min(time / expansionTime, 1.0) // Clamp to 1.0 so it stops expanding
-
-  for (let i = 0; i < heartCount; i++) {
-    const angle = (i / heartCount) * Math.PI * 2
-    // Smooth cubic easing for expansion
-    const easeProgress = progress * progress * (3 - 2 * progress) // Smoothstep
-    const distance = easeProgress * maxDistance
-
-    const heartX = meetingX + Math.cos(angle) * distance
-    const heartY = meetingY + Math.sin(angle) * distance
-
-    // Heart size much larger and grows more as it expands
-    const heartSize = 28 + easeProgress * 20
-
-    // Very delayed fade-out: stays fully visible for 80% of animation
-    const fadeStart = 0.8 // Start fading at 80% of animation
-    const fadeOpacity = progress > fadeStart ? Math.max(0, (1 - progress) / (1 - fadeStart)) : 1
-
-    // Glow halo effect - larger and more vibrant
-    ctx.globalAlpha = fadeOpacity * 0.9
-    ctx.shadowColor = sourceColor
-    ctx.shadowBlur = 30 + easeProgress * 25
-    ctx.fillStyle = sourceColor
-    ctx.font = `bold ${heartSize}px Arial`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText('♥', heartX, heartY)
-
-    // Strong outer glow
-    ctx.shadowBlur = 50 + easeProgress * 30
-    ctx.globalAlpha = fadeOpacity * 0.5
-    ctx.fillText('♥', heartX, heartY)
-
-    // Extra outer glow layer for more prominence
-    ctx.shadowBlur = 70 + easeProgress * 40
-    ctx.globalAlpha = fadeOpacity * 0.25
-    ctx.fillText('♥', heartX, heartY)
+  // RADIATING BURST (8 Hearts expanding from center)
+  const burstP = (el * 0.5) % 1; // Animation cycle
+  const burstRadius = burstP * 210;
+  const burstAlpha = (1 - burstP) * 0.5;
+  ctx.globalAlpha = burstAlpha;
+  ctx.font = `24px Arial`;
+  ctx.fillStyle = color;
+  for (let j = 0; j < 8; j++) {
+    const angle = (j / 8) * 6.28 + (el * 0.5);
+    ctx.fillText('♥', mX + Math.cos(angle) * burstRadius, mY + Math.sin(angle) * burstRadius);
   }
 
-  ctx.globalAlpha = 1.0
-  ctx.shadowColor = 'transparent'
-  ctx.shadowBlur = 0
+  // Central Heart
+  ctx.globalAlpha = 0.8; ctx.fillStyle = color; ctx.font = `bold ${28 * hP}px Arial`; ctx.fillText('♥', mX, mY); ctx.globalAlpha = 1
 }
