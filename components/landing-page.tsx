@@ -77,23 +77,21 @@ export default function LandingPage() {
 
       <div className="relative flex min-h-screen flex-col">
         {/* Top Navigation */}
-        <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-6 py-6 lg:px-20">
-          <div className="flex w-full max-w-7xl items-center justify-between glass-effect border border-white/10 px-8 py-3 rounded-full">
-            <Image
-              alt="Echo Logo"
-              src="/echo_logo.png"
-              width={62}
-              height={72}
-              priority
-              loading="eager"
-            />
+        <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-4 py-4 md:px-6 md:py-6 lg:px-20">
+          <div className="flex w-full max-w-7xl items-center justify-between glass-effect border border-white/10 px-4 py-2 md:px-8 md:py-3 rounded-full">
+            <div className="relative w-11 h-12 md:w-[62px] md:h-[72px]">
+              <Image
+                alt="Echo Logo"
+                src="/echo_logo.png"
+                fill
+                priority
+                className="object-contain"
+                loading="eager"
+              />
+            </div>
             <div className="flex items-center gap-3">
-
-              <div className="flex h-8 w-8  items-center justify-center rounded-full  text-white">
-
-                {/* <span className="material-symbols-outlined text-[20px] font-bold">Echo</span> */}
+              <div className="flex h-8 w-8 items-center justify-center rounded-full text-white">
               </div>
-              {/* <h2 className="text-xl font-bold tracking-tight text-white">Echo</h2> */}
             </div>
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
               <a className="hover:text-accent-pink transition-colors" href="#philosophy">
@@ -109,7 +107,7 @@ export default function LandingPage() {
             <button
               onClick={handleSignIn}
               disabled={isSigningIn}
-              className="flex min-w-[120px] cursor-pointer items-center justify-center rounded-full h-10 px-6 bg-accent-pink text-white text-sm font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-accent-pink/20 disabled:opacity-50"
+              className="flex min-w-[100px] md:min-w-[120px] cursor-pointer items-center justify-center rounded-full h-9 md:h-10 px-4 md:px-6 bg-accent-pink text-white text-xs md:text-sm font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-accent-pink/20 disabled:opacity-50"
             >
               {isSigningIn ? 'Signing in...' : 'Get Started'}
             </button>
@@ -118,26 +116,26 @@ export default function LandingPage() {
 
         <main className="flex-1">
           {/* Hero Section */}
-          <section className="relative flex flex-col items-center justify-center px-6 lg:px-20 pt-32 pb-20 min-h-screen text-left overflow-hidden">
-            <div className="mx-auto max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
+          <section className="relative flex flex-col items-center justify-center px-4 md:px-6 lg:px-20 pt-28 md:pt-32 pb-12 md:pb-20 min-h-screen text-left overflow-hidden">
+            <div className="mx-auto max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center relative z-10">
               
               {/* Left Column: Slogan & Rebranding */}
-              <div className="flex flex-col items-start gap-8">
+              <div className="flex flex-col items-start gap-6 md:gap-8">
                 <div className="inline-flex items-center gap-2 rounded-full border border-accent-pink/20 bg-accent-pink/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-accent-pink">
                   Companion & Social Sync
                 </div>
-                <h1 className="text-4xl font-black leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
+                <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight text-white">
                   Connect. Chat. <br />
                   <span className="text-accent-pink">Real-Time Vibe.</span>
                 </h1>
                 <p className="max-w-[550px] text-base font-light leading-relaxed text-slate-300 md:text-lg">
                   Beyond standard messaging. A space to find AI companions, create genuine friendships, chat in real-time, and synchronise your moods. Experience the future of connection now.
                 </p>
-                <div className="flex flex-col items-start gap-4 w-full sm:w-auto">
+                <div className="flex flex-col items-stretch sm:items-start gap-4 w-full sm:w-auto">
                   <button
                     onClick={handleSignIn}
                     disabled={isSigningIn}
-                    className="flex min-w-[280px] cursor-pointer items-center justify-center gap-3 rounded-full h-14 px-8 bg-white text-background-dark text-base font-bold transition-all hover:bg-slate-100 shadow-xl disabled:opacity-50"
+                    className="flex w-full sm:w-auto sm:min-w-[280px] cursor-pointer items-center justify-center gap-3 rounded-full h-14 px-8 bg-white text-background-dark text-base font-bold transition-all hover:bg-slate-100 shadow-xl disabled:opacity-50"
                   >
                     <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                       <path
@@ -159,12 +157,12 @@ export default function LandingPage() {
                     </svg>
                     {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
                   </button>
-                  <p className="text-xs text-white/40">Secure connection, no public profiles.</p>
+                  <p className="text-xs text-white/40 text-center sm:text-left">Secure connection, no public profiles.</p>
                 </div>
               </div>
 
               {/* Right Column: Embedded Voice Assistant */}
-              <div className="glass-panel border-white/10 rounded-[32px] p-6 flex flex-col w-full max-w-md mx-auto shadow-2xl relative min-h-[460px]">
+              <div className="glass-panel border-white/10 rounded-2xl md:rounded-[32px] p-4 md:p-6 flex flex-col w-full max-w-md mx-auto shadow-2xl relative min-h-[460px]">
                 
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
@@ -287,49 +285,45 @@ export default function LandingPage() {
                   </Button>
                 </form>
               </div>
-
-            </div>
-          </section>
-
           {/* AI Companion & Connection Philosophy */}
-          <section id="philosophy" className="px-6 py-32 lg:px-20">
+          <section id="philosophy" className="px-4 md:px-6 py-16 md:py-32 lg:px-20">
             <div className="mx-auto max-w-7xl">
-              <div className="grid grid-cols-1 gap-20 lg:grid-cols-2 lg:items-center">
+              <div className="grid grid-cols-1 gap-12 lg:gap-20 lg:grid-cols-2 lg:items-center">
                 <div>
-                  <h2 className="text-4xl font-black tracking-tight text-white md:text-5xl lg:text-6xl">
+                  <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
                     The <span className="text-accent-pink">Echo Connection</span> <br /> Philosophy.
                   </h2>
-                  <p className="mt-8 text-lg font-light leading-relaxed text-white/60">
+                  <p className="mt-6 text-base md:text-lg font-light leading-relaxed text-white/60">
                     In a world of infinite scrolling and empty feeds, Echo stands for real presence. We combine state-of-the-art AI companions with private, real-time social synchronization to help you stay deeply connected to those who matter most.
                   </p>
-                  <div className="mt-12 flex flex-col gap-8">
-                    <div className="flex gap-6">
+                  <div className="mt-10 flex flex-col gap-6 md:gap-8">
+                    <div className="flex gap-4 md:gap-6">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent-pink/20 text-accent-pink">
                         <ShieldCheck className="w-6 h-6" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-white">Private Sanctuary</h3>
-                        <p className="text-white/50 mt-1">No data selling, no public ads. Your conversations with friends and AI companions remain strictly yours.</p>
+                        <h3 className="text-lg md:text-xl font-bold text-white">Private Sanctuary</h3>
+                        <p className="text-white/50 text-sm mt-1">No data selling, no public ads. Your conversations with friends and AI companions remain strictly yours.</p>
                       </div>
                     </div>
-                    <div className="flex gap-6">
+                    <div className="flex gap-4 md:gap-6">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent-pink/20 text-accent-pink">
                         <Activity className="w-6 h-6" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-white">Interactive Sync</h3>
-                        <p className="text-white/50 mt-1">Share live mood states, synchronise heartbeats, and check in with your circle effortlessly.</p>
+                        <h3 className="text-lg md:text-xl font-bold text-white">Interactive Sync</h3>
+                        <p className="text-white/50 text-sm mt-1">Share live mood states, synchronise heartbeats, and check in with your circle effortlessly.</p>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div className="relative">
-                  <div className="aspect-square w-full rounded-full border-2 border-dashed border-accent-pink/30 p-8 flex items-center justify-center">
+                <div className="relative mt-8 lg:mt-0 max-w-md mx-auto w-full">
+                  <div className="aspect-square w-full rounded-full border-2 border-dashed border-accent-pink/30 p-4 sm:p-8 flex items-center justify-center">
                     <div className="aspect-square w-full rounded-full bg-gradient-to-br from-accent-pink to-background-dark/80 p-1 flex items-center justify-center">
-                      <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-surface-dark p-12 text-center">
-                        <Sparkles className="text-accent-pink w-12 h-12 mb-4 animate-pulse" />
-                        <p className="text-2xl font-bold text-white">Connected</p>
-                        <p className="text-white/40 text-sm mt-2">Nora & Echo AI</p>
+                      <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-surface-dark p-8 sm:p-12 text-center">
+                        <Sparkles className="text-accent-pink w-10 h-10 sm:w-12 sm:h-12 mb-4 animate-pulse" />
+                        <p className="text-xl sm:text-2xl font-bold text-white">Connected</p>
+                        <p className="text-white/40 text-xs sm:text-sm mt-2">Nora & Echo AI</p>
                       </div>
                     </div>
                   </div>
@@ -342,50 +336,50 @@ export default function LandingPage() {
           </section>
 
           {/* Feature Grid */}
-          <section id="features" className="bg-surface-dark py-32 px-6">
+          <section id="features" className="bg-surface-dark py-16 md:py-32 px-4 md:px-6">
             <div className="mx-auto max-w-7xl">
-              <div className="text-center mb-20">
-                <h2 className="text-4xl font-bold text-white tracking-tight">Interactive Features</h2>
-                <p className="text-white/50 mt-4 max-w-xl mx-auto">Designed to remove digital noise and focus on genuine human-to-human and human-to-AI bonds.</p>
+              <div className="text-center mb-12 md:mb-20">
+                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Interactive Features</h2>
+                <p className="text-white/50 mt-4 max-w-xl mx-auto text-sm md:text-base">Designed to remove digital noise and focus on genuine human-to-human and human-to-AI bonds.</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                 {/* Card 1 */}
-                <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
+                <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-6 md:p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
                   <Sparkles className="text-accent-pink w-10 h-10" />
-                  <h3 className="text-2xl font-bold text-white">AI Companions</h3>
-                  <p className="text-white/50 leading-relaxed font-light">Customizable AI companions that understand you, offer advice, support your goals, and converse over real-time voice.</p>
+                  <h3 className="text-xl md:text-2xl font-bold text-white">AI Companions</h3>
+                  <p className="text-white/50 leading-relaxed text-sm md:text-base font-light">Customizable AI companions that understand you, offer advice, support your goals, and converse over real-time voice.</p>
                 </div>
 
                 {/* Card 2 */}
-                <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
+                <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-6 md:p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
                   <MessageSquare className="text-accent-pink w-10 h-10" />
-                  <h3 className="text-2xl font-bold text-white">Real-Time Chat</h3>
-                  <p className="text-white/50 leading-relaxed font-light">Private direct chats, synchronised mood indicators, love bites, and quick interactive states.</p>
+                  <h3 className="text-xl md:text-2xl font-bold text-white">Real-Time Chat</h3>
+                  <p className="text-white/50 leading-relaxed text-sm md:text-base font-light">Private direct chats, synchronised mood indicators, love bites, and quick interactive states.</p>
                 </div>
 
                 {/* Card 3 */}
-                <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
+                <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-6 md:p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
                   <Users className="text-accent-pink w-10 h-10" />
-                  <h3 className="text-2xl font-bold text-white">Close Friends</h3>
-                  <p className="text-white/50 leading-relaxed font-light">Sync up with your closest friends or partner in an exclusive space away from public social media noise.</p>
+                  <h3 className="text-xl md:text-2xl font-bold text-white">Close Friends</h3>
+                  <p className="text-white/50 leading-relaxed text-sm md:text-base font-light">Sync up with your closest friends or partner in an exclusive space away from public social media noise.</p>
                 </div>
               </div>
             </div>
           </section>
 
           {/* Testimonial */}
-          <section className="py-32 px-6">
+          <section className="py-16 md:py-32 px-4 md:px-6">
             <div className="mx-auto max-w-4xl text-center">
-              <div className="mb-10 flex justify-center gap-1">
+              <div className="mb-8 md:mb-10 flex justify-center gap-1">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="text-accent-pink w-6 h-6 fill-accent-pink" />
+                  <Star key={i} className="text-accent-pink w-5 h-5 md:w-6 md:h-6 fill-accent-pink" />
                 ))}
               </div>
-              <blockquote className="text-2xl italic font-light text-white md:text-4xl leading-snug">
+              <blockquote className="text-lg sm:text-2xl md:text-4xl italic font-light text-white leading-snug">
                 "Echo completely changed how I think about digital presence. My AI companion is supportive, and syncing with my friends keeps us feeling like we're in the same room."
               </blockquote>
-              <div className="mt-10 flex items-center justify-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-accent-pink/20 overflow-hidden">
+              <div className="mt-8 md:mt-10 flex items-center justify-center gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-accent-pink/20 overflow-hidden">
                   <img
                     alt="Nora"
                     className="h-full w-full object-cover"
@@ -393,25 +387,25 @@ export default function LandingPage() {
                   />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold text-white">Nora & Echo AI</p>
-                  <p className="text-white/40 text-sm uppercase tracking-widest">June 2026</p>
+                  <p className="font-bold text-white text-sm md:text-base">Nora & Echo AI</p>
+                  <p className="text-white/40 text-xs uppercase tracking-widest">June 2026</p>
                 </div>
               </div>
             </div>
           </section>
 
           {/* Final CTA */}
-          <section className="py-20 px-6">
-            <div className="mx-auto max-w-5xl rounded-xl bg-gradient-to-r from-accent-pink/30 to-background-dark border border-accent-pink/20 p-12 lg:p-20 text-center overflow-hidden relative">
+          <section className="py-12 md:py-20 px-4 md:px-6">
+            <div className="mx-auto max-w-5xl rounded-xl bg-gradient-to-r from-accent-pink/30 to-background-dark border border-accent-pink/20 p-6 sm:p-12 lg:p-20 text-center overflow-hidden relative">
               <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-accent-pink/20 blur-[100px]"></div>
-              <h2 className="text-4xl font-black text-white md:text-6xl mb-8 relative z-10">Ready to sync up?</h2>
-              <p className="text-xl text-white/70 mb-12 max-w-2xl mx-auto relative z-10">
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-8 relative z-10">Ready to sync up?</h2>
+              <p className="text-lg md:text-xl text-white/70 mb-8 md:mb-12 max-w-2xl mx-auto relative z-10">
                 Join thousands of users building real-time connections with companions and friends.
               </p>
               <button
                 onClick={handleSignIn}
                 disabled={isSigningIn}
-                className="flex mx-auto min-w-[240px] cursor-pointer items-center justify-center gap-3 rounded-full h-16 px-10 bg-accent-pink text-white text-lg font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-accent-pink/30 disabled:opacity-50 relative z-10"
+                className="flex mx-auto w-full sm:w-auto sm:min-w-[240px] cursor-pointer items-center justify-center gap-3 rounded-full h-16 px-10 bg-accent-pink text-white text-lg font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-accent-pink/30 disabled:opacity-50 relative z-10"
               >
                 {isSigningIn ? 'Starting your Echo...' : 'Start Your Echo'}
               </button>
@@ -420,8 +414,8 @@ export default function LandingPage() {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-white/10 bg-background-dark py-12 px-6">
-          <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-center gap-8">
+        <footer className="border-t border-white/10 bg-background-dark py-12 px-4 md:px-6">
+          <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
             <div className="flex items-center gap-3 opacity-50">
               <Image
                 alt="Echo Logo"
@@ -431,7 +425,7 @@ export default function LandingPage() {
               />
               <span className="text-lg font-bold tracking-tight text-white">Echo</span>
             </div>
-            <div className="flex gap-8 text-sm text-white/40">
+            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm text-white/40">
               <a className="hover:text-accent-pink transition-colors" href="#privacy">
                 Privacy
               </a>
