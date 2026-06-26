@@ -79,7 +79,7 @@ export default function LandingPage() {
         {/* Top Navigation */}
         <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-4 py-4 md:px-6 md:py-6 lg:px-20">
           <div className="flex w-full max-w-7xl items-center justify-between glass-effect border border-white/10 px-4 py-2 md:px-8 md:py-3 rounded-full">
-            <div className="relative w-11 h-12 md:w-[62px] md:h-[72px]">
+            <div className="relative w-11 h-12 md:w-[62px] md:h-[72px] shrink-0">
               <Image
                 alt="Echo Logo"
                 src="/echo_logo.png"
@@ -89,25 +89,21 @@ export default function LandingPage() {
                 loading="eager"
               />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full text-white">
-              </div>
-            </div>
-            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
-              <a className="hover:text-accent-pink transition-colors" href="#philosophy">
+            <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-white/70">
+              <a className="hover:text-accent-pink transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-accent-pink after:transition-all after:duration-300 pb-1" href="#philosophy">
                 Philosophy
               </a>
-              <a className="hover:text-accent-pink transition-colors" href="#features">
+              <a className="hover:text-accent-pink transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-accent-pink after:transition-all after:duration-300 pb-1" href="#features">
                 The Lock
               </a>
-              <a className="hover:text-accent-pink transition-colors" href="#safety">
+              <a className="hover:text-accent-pink transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-accent-pink after:transition-all after:duration-300 pb-1" href="#safety">
                 Safety
               </a>
             </nav>
             <button
               onClick={handleSignIn}
               disabled={isSigningIn}
-              className="flex min-w-[100px] md:min-w-[120px] cursor-pointer items-center justify-center rounded-full h-9 md:h-10 px-4 md:px-6 bg-accent-pink text-white text-xs md:text-sm font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-accent-pink/20 disabled:opacity-50"
+              className="flex min-w-[100px] md:min-w-[120px] cursor-pointer items-center justify-center rounded-full h-9 md:h-10 px-4 md:px-6 bg-accent-pink text-white text-xs md:text-sm font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-accent-pink/20 disabled:opacity-50 shrink-0"
             >
               {isSigningIn ? 'Signing in...' : 'Get Started'}
             </button>
