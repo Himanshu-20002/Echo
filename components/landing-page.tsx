@@ -285,6 +285,9 @@ export default function LandingPage() {
                   </Button>
                 </form>
               </div>
+            </div>
+          </section>
+
           {/* AI Companion & Connection Philosophy */}
           <section id="philosophy" className="px-4 md:px-6 py-16 md:py-32 lg:px-20">
             <div className="mx-auto max-w-7xl">
