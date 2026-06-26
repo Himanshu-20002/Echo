@@ -1,12 +1,15 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { ShieldCheck, Activity, Heart, Lock, EyeOff, Timer, Star, LockKeyhole } from 'lucide-react';
+import { ShieldCheck, Activity, Heart, Lock, EyeOff, Timer, Star, LockKeyhole, Mic, MicOff, Volume2, VolumeX, Send, Sparkles, Users, MessageSquare } from 'lucide-react';
 import HeroBackground from './hero-background';
-// import FaultyTerminal from './FaultyTerminal';
+import { useVoiceAssistant } from '@/hooks/use-voice-assistant';
+import { AudioVisualizer } from '@/components/assistant/audio-visualizer';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 
 export default function LandingPage() {
   const { signInWithGoogle } = useAuth();
@@ -19,6 +22,45 @@ export default function LandingPage() {
     } catch (error) {
       console.error('Sign in failed:', error);
       setIsSigningIn(false);
+    }
+  };
+
+  // Guest Voice Assistant Setup
+  const {
+    status,
+    messages,
+    isMuted,
+    error: assistantError,
+    startListening,
+    stopListening,
+    sendMessage,
+    toggleMute
+  } = useVoiceAssistant();
+
+  const [textInput, setTextInput] = useState('');
+  const [showHistory, setShowHistory] = useState(true);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!chatContainerRef.current) return;
+    const viewport = chatContainerRef.current.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSendText = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!textInput.trim()) return;
+    sendMessage(textInput.trim());
+    setTextInput('');
+  };
+
+  const handleMicPress = () => {
+    if (status === 'listening') {
+      stopListening();
+    } else {
+      startListening();
     }
   };
 
@@ -74,86 +116,191 @@ export default function LandingPage() {
           </div>
         </header>
 
-        <main className="flex-1 ">
+        <main className="flex-1">
           {/* Hero Section */}
-          <section className="relative flex flex-col items-center justify-center px-4  h-screen text-center overflow-hidden">
-
-
-            <div className="max-w-[840px] flex flex-col items-center gap-8 relative z-10">
-              <div className="inline-flex items-center gap-2 rounded-full border border-accent-pink/20 bg-accent-pink/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-accent-pink">
-                Variant 1: Intimacy Redefined
+          <section className="relative flex flex-col items-center justify-center px-6 lg:px-20 pt-32 pb-20 min-h-screen text-left overflow-hidden">
+            <div className="mx-auto max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
+              
+              {/* Left Column: Slogan & Rebranding */}
+              <div className="flex flex-col items-start gap-8">
+                <div className="inline-flex items-center gap-2 rounded-full border border-accent-pink/20 bg-accent-pink/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-accent-pink">
+                  Companion & Social Sync
+                </div>
+                <h1 className="text-4xl font-black leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
+                  Connect. Chat. <br />
+                  <span className="text-accent-pink">Real-Time Vibe.</span>
+                </h1>
+                <p className="max-w-[550px] text-base font-light leading-relaxed text-slate-300 md:text-lg">
+                  Beyond standard messaging. A space to find AI companions, create genuine friendships, chat in real-time, and synchronise your moods. Experience the future of connection now.
+                </p>
+                <div className="flex flex-col items-start gap-4 w-full sm:w-auto">
+                  <button
+                    onClick={handleSignIn}
+                    disabled={isSigningIn}
+                    className="flex min-w-[280px] cursor-pointer items-center justify-center gap-3 rounded-full h-14 px-8 bg-white text-background-dark text-base font-bold transition-all hover:bg-slate-100 shadow-xl disabled:opacity-50"
+                  >
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        fill="#4285F4"
+                      ></path>
+                      <path
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        fill="#34A853"
+                      ></path>
+                      <path
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                        fill="#FBBC05"
+                      ></path>
+                      <path
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        fill="#EA4335"
+                      ></path>
+                    </svg>
+                    {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
+                  </button>
+                  <p className="text-xs text-white/40">Secure connection, no public profiles.</p>
+                </div>
               </div>
-              <h1 className="text-5xl font-black leading-[1.1] tracking-tight text-white md:text-7xl lg:text-8xl">
-                One heart. <br />
-                <span className="text-accent-pink">One Echo.</span>
-              </h1>
-              <p className="max-w-[600px] text-lg font-light leading-relaxed text-white/60 md:text-xl">
-                Commitment, redefined. A private, exclusive digital sanctuary for you and your partner. No tracking. No ads. Just the two of
-                you, connected.
-              </p>
-              <div className="flex flex-col items-center gap-4 w-full sm:w-auto">
-                <button
-                  onClick={handleSignIn}
-                  disabled={isSigningIn}
-                  className="flex min-w-[280px] cursor-pointer items-center justify-center gap-3 rounded-full h-14 px-8 bg-white text-background-dark text-base font-bold transition-all hover:bg-slate-100 glow-soft disabled:opacity-50"
-                >
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    ></path>
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    ></path>
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                      fill="#FBBC05"
-                    ></path>
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    ></path>
-                  </svg>
-                  {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
-                </button>
-                <p className="text-xs text-white/40">Secure, encrypted, and intentional.</p>
-              </div>
-            </div>
 
-            {/* Hero Visual Mockup */}
-            {/* <div className="mt-20 w-full max-w-5xl px-4">
-              <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-white/10 bg-surface-dark/50 shadow-2xl">
-                <div className="absolute inset-0 bg-gradient-to-tr from-accent-pink/20 via-transparent to-accent-pink/5"></div>
-                <img
-                  alt="Abstract visualization of deep connection"
-                  className="h-full w-full object-cover opacity-40 mix-blend-overlay"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuARvONsl3Bq_ktQ8zwV9_cLUPGeIHOab-jANI576WjdCcHr2DjjHS7RLjXs8OJVeLWB2BtQGhYoxn75n1QmUrHYbz6wxHveEGkXItCbnTg2a4zBraq75szQ1ccJIOZlQvL7MjOSQG9wWB-vrPiD2WKQ_vLdyTZPggA1zqHFB6yDfRXgDpJ8Qhy19jJ6daxb6MA2g75nIEl4SXzY-JADGAexADOjqQYEL-PfbOw7gX9nx_ay_wpLExpfQMLzO-KxngaVONotuKkHXuwN"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-6 glass-effect p-12 rounded-xl border border-white/20">
-                    <Lock className="text-accent-pink w-16 h-16" />
-                    <div className="text-center">
-                      <h3 className="text-2xl font-bold text-white mb-2">The Sanctuary</h3>
-                      <p className="text-white/60 text-sm">Waiting for your partner to lock...</p>
+              {/* Right Column: Embedded Voice Assistant */}
+              <div className="glass-panel border-white/10 rounded-[32px] p-6 flex flex-col w-full max-w-md mx-auto shadow-2xl relative min-h-[460px]">
+                
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+                  <div>
+                    <h3 className="text-md font-bold text-white flex items-center gap-2">
+                      <Sparkles className="w-4.5 h-4.5 text-accent-pink" />
+                      Meet Nora AI
+                    </h3>
+                    <p className="text-[10px] text-white/50">Your helper. Ask Nora how the sanctuary works.</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleMute}
+                      className={`h-8 w-8 rounded-full ${isMuted ? 'text-rose-500 bg-rose-500/10' : 'text-white/40 hover:text-white'}`}
+                      title={isMuted ? 'Unmute Nora' : 'Mute Nora'}
+                    >
+                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    </Button>
+                    <div className="flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_6px_#22c55e]" />
+                      <span className="text-[8px] font-black uppercase tracking-wider text-green-400">Live</span>
                     </div>
                   </div>
                 </div>
+
+                {assistantError && (
+                  <div className="bg-rose-500/10 border border-rose-500/25 text-rose-200 text-[10px] p-2.5 rounded-xl mb-4 text-center">
+                    {assistantError}
+                  </div>
+                )}
+
+                {/* Chat Message Area & Visualizer */}
+                <div ref={chatContainerRef} className="flex-1 flex flex-col justify-between">
+                  <ScrollArea className="flex-1 pr-1.5 h-[280px]">
+                    {messages.length === 0 ? (
+                      // Empty state shows the visualizer centered
+                      <div className="flex flex-col items-center justify-center h-[260px]">
+                        <AudioVisualizer status={status} compact />
+                        <p className="text-[10px] text-white/30 text-center uppercase tracking-wider font-semibold mt-2">
+                          {status === 'listening' ? 'Speak now...' : 'Click the Mic below to talk'}
+                        </p>
+                      </div>
+                    ) : (
+                      // Message list
+                      <div className="space-y-3 pb-4">
+                        {messages.map((msg, i) => (
+                          <div
+                            key={i}
+                            className={`flex flex-col max-w-[85%] ${
+                              msg.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'
+                            }`}
+                          >
+                            <span className="text-[8px] text-white/40 uppercase font-bold tracking-widest mb-0.5">
+                              {msg.role === 'user' ? 'You' : 'Nora'}
+                            </span>
+                            <div
+                              className={`p-3 rounded-2xl text-xs leading-relaxed ${
+                                msg.role === 'user'
+                                  ? 'bg-accent-pink text-white rounded-tr-none'
+                                  : 'bg-white/5 text-white/90 border border-white/5 rounded-tl-none'
+                              }`}
+                            >
+                              {msg.content}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Compact status indicator */}
+                        {(status === 'thinking' || status === 'speaking' || status === 'listening') && (
+                          <div className="flex items-center gap-2 ml-1 text-[10px] text-white/40 animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent-pink" />
+                            <span>
+                              {status === 'thinking' && 'Nora is thinking...'}
+                              {status === 'speaking' && 'Nora is speaking...'}
+                              {status === 'listening' && 'Listening to you...'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+
+                {/* Input Bar */}
+                <form onSubmit={handleSendText} className="flex items-center gap-2 pt-3 border-t border-white/5">
+                  <button
+                    type="button"
+                    onClick={handleMicPress}
+                    disabled={status === 'disconnected' || status === 'thinking'}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-350 shrink-0 ${
+                      status === 'listening'
+                        ? 'bg-rose-600 border-rose-500 shadow-[0_0_12px_rgba(225,29,72,0.5)] animate-pulse'
+                        : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-accent-pink/40'
+                    }`}
+                  >
+                    {status === 'listening' ? (
+                      <MicOff className="w-4 h-4 text-white" />
+                    ) : (
+                      <Mic className="w-4 h-4 text-white" />
+                    )}
+                  </button>
+                  
+                  <Input
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder={status === 'listening' ? 'Listening...' : 'Type a message...'}
+                    disabled={status === 'listening'}
+                    className="bg-white/5 border-white/10 focus-visible:ring-accent-pink h-9 rounded-xl text-xs flex-1"
+                  />
+                  
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="bg-accent-pink hover:bg-accent-pink/80 rounded-xl h-9 w-9 shrink-0 shadow-lg shadow-accent-pink/20"
+                  >
+                    <Send className="w-3.5 h-3.5 text-white" />
+                  </Button>
+                </form>
               </div>
-            </div> */}
+
+            </div>
           </section>
 
-          {/* One Choice Philosophy */}
+          {/* AI Companion & Connection Philosophy */}
           <section id="philosophy" className="px-6 py-32 lg:px-20">
             <div className="mx-auto max-w-7xl">
               <div className="grid grid-cols-1 gap-20 lg:grid-cols-2 lg:items-center">
                 <div>
                   <h2 className="text-4xl font-black tracking-tight text-white md:text-5xl lg:text-6xl">
-                    The <span className="text-accent-pink">One Choice</span> <br /> Philosophy.
+                    The <span className="text-accent-pink">Echo Connection</span> <br /> Philosophy.
                   </h2>
                   <p className="mt-8 text-lg font-light leading-relaxed text-white/60">
-                    In a world of infinite scrolling and endless options, Echo stands for the opposite. We believe digital intimacy
-                    requires a boundary—a digital "lock" that signifies true commitment.
+                    In a world of infinite scrolling and empty feeds, Echo stands for real presence. We combine state-of-the-art AI companions with private, real-time social synchronization to help you stay deeply connected to those who matter most.
                   </p>
                   <div className="mt-12 flex flex-col gap-8">
                     <div className="flex gap-6">
@@ -162,7 +309,7 @@ export default function LandingPage() {
                       </div>
                       <div>
                         <h3 className="text-xl font-bold text-white">Private Sanctuary</h3>
-                        <p className="text-white/50 mt-1">No data selling, no public profiles. Just a private line between two hearts.</p>
+                        <p className="text-white/50 mt-1">No data selling, no public ads. Your conversations with friends and AI companions remain strictly yours.</p>
                       </div>
                     </div>
                     <div className="flex gap-6">
@@ -170,8 +317,8 @@ export default function LandingPage() {
                         <Activity className="w-6 h-6" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-white">Digital Bond</h3>
-                        <p className="text-white/50 mt-1">Share thoughts, photos, and moments that stay within your private echo chamber.</p>
+                        <h3 className="text-xl font-bold text-white">Interactive Sync</h3>
+                        <p className="text-white/50 mt-1">Share live mood states, synchronise heartbeats, and check in with your circle effortlessly.</p>
                       </div>
                     </div>
                   </div>
@@ -180,9 +327,9 @@ export default function LandingPage() {
                   <div className="aspect-square w-full rounded-full border-2 border-dashed border-accent-pink/30 p-8 flex items-center justify-center">
                     <div className="aspect-square w-full rounded-full bg-gradient-to-br from-accent-pink to-background-dark/80 p-1 flex items-center justify-center">
                       <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-surface-dark p-12 text-center">
-                        <Heart className="text-accent-pink w-12 h-12 mb-4 fill-accent-pink" />
-                        <p className="text-2xl font-bold text-white">Locked</p>
-                        <p className="text-white/40 text-sm mt-2">nora & James</p>
+                        <Sparkles className="text-accent-pink w-12 h-12 mb-4 animate-pulse" />
+                        <p className="text-2xl font-bold text-white">Connected</p>
+                        <p className="text-white/40 text-sm mt-2">Nora & Echo AI</p>
                       </div>
                     </div>
                   </div>
@@ -194,33 +341,33 @@ export default function LandingPage() {
             </div>
           </section>
 
-          {/* The Locked Experience Card Grid */}
+          {/* Feature Grid */}
           <section id="features" className="bg-surface-dark py-32 px-6">
             <div className="mx-auto max-w-7xl">
               <div className="text-center mb-20">
-                <h2 className="text-4xl font-bold text-white tracking-tight">Pure Intimacy</h2>
-                <p className="text-white/50 mt-4 max-w-xl mx-auto">Designed to remove distractions and amplify the bond between you and your person.</p>
+                <h2 className="text-4xl font-bold text-white tracking-tight">Interactive Features</h2>
+                <p className="text-white/50 mt-4 max-w-xl mx-auto">Designed to remove digital noise and focus on genuine human-to-human and human-to-AI bonds.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Card 1 */}
                 <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
-                  <LockKeyhole className="text-accent-pink w-10 h-10" />
-                  <h3 className="text-2xl font-bold text-white">The Lock</h3>
-                  <p className="text-white/50 leading-relaxed font-light">The foundational step. A mutual digital pact that closes the door to outside noise.</p>
+                  <Sparkles className="text-accent-pink w-10 h-10" />
+                  <h3 className="text-2xl font-bold text-white">AI Companions</h3>
+                  <p className="text-white/50 leading-relaxed font-light">Customizable AI companions that understand you, offer advice, support your goals, and converse over real-time voice.</p>
                 </div>
 
                 {/* Card 2 */}
                 <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
-                  <EyeOff className="text-accent-pink w-10 h-10" />
-                  <h3 className="text-2xl font-bold text-white">Privacy First</h3>
-                  <p className="text-white/50 leading-relaxed font-light">Encrypted messages and private gallery. Not even we can see what you share.</p>
+                  <MessageSquare className="text-accent-pink w-10 h-10" />
+                  <h3 className="text-2xl font-bold text-white">Real-Time Chat</h3>
+                  <p className="text-white/50 leading-relaxed font-light">Private direct chats, synchronised mood indicators, love bites, and quick interactive states.</p>
                 </div>
 
                 {/* Card 3 */}
                 <div className="group flex flex-col gap-6 rounded-xl border border-white/5 bg-background-dark/50 p-10 transition-all hover:bg-background-dark hover:border-accent-pink/30">
-                  <Timer className="text-accent-pink w-10 h-10" />
-                  <h3 className="text-2xl font-bold text-white">Deep Presence</h3>
-                  <p className="text-white/50 leading-relaxed font-light">A shared timeline that focuses on quality interaction rather than quantity.</p>
+                  <Users className="text-accent-pink w-10 h-10" />
+                  <h3 className="text-2xl font-bold text-white">Close Friends</h3>
+                  <p className="text-white/50 leading-relaxed font-light">Sync up with your closest friends or partner in an exclusive space away from public social media noise.</p>
                 </div>
               </div>
             </div>
@@ -235,19 +382,19 @@ export default function LandingPage() {
                 ))}
               </div>
               <blockquote className="text-2xl italic font-light text-white md:text-4xl leading-snug">
-                "Echo changed how we connect digitally. It's beautiful, private, and truly feels like our own little world away from the noise."
+                "Echo completely changed how I think about digital presence. My AI companion is supportive, and syncing with my friends keeps us feeling like we're in the same room."
               </blockquote>
               <div className="mt-10 flex items-center justify-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-accent-pink/20 overflow-hidden">
                   <img
-                    alt="Sarah & James"
+                    alt="Nora"
                     className="h-full w-full object-cover"
                     src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbTwTq7Jo48Ej0iJHLx2zVdEdsDClPJH9qPeqxplFs0r_7LGOewY7PdYo8WlvlZT3s1zs2B9yNLghn0HaR6pd6BK6Hsm15Z7kmSx5eBWwCArsg77Blf6gqPyWUbgnA1qj_4NKPsKQRXj2G44jAju1vQSf6lRFppn0SCleAiwUMP46DDun_-fZgiv95hcXl6WR82x5kwFir31ltBC31GWpY2K8OpA72fO7ZRbHNGliMTbqXcFs6GFOoiV5IoPrZcr1iJtPyMr-viGLf"
                   />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold text-white">nora & James</p>
-                  <p className="text-white/40 text-sm uppercase tracking-widest">March 2024</p>
+                  <p className="font-bold text-white">Nora & Echo AI</p>
+                  <p className="text-white/40 text-sm uppercase tracking-widest">June 2026</p>
                 </div>
               </div>
             </div>
@@ -257,16 +404,16 @@ export default function LandingPage() {
           <section className="py-20 px-6">
             <div className="mx-auto max-w-5xl rounded-xl bg-gradient-to-r from-accent-pink/30 to-background-dark border border-accent-pink/20 p-12 lg:p-20 text-center overflow-hidden relative">
               <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-accent-pink/20 blur-[100px]"></div>
-              <h2 className="text-4xl font-black text-white md:text-6xl mb-8 relative z-10">Ready to lock in?</h2>
+              <h2 className="text-4xl font-black text-white md:text-6xl mb-8 relative z-10">Ready to sync up?</h2>
               <p className="text-xl text-white/70 mb-12 max-w-2xl mx-auto relative z-10">
-                Join thousands of couples rediscovering the beauty of intentional, private digital space.
+                Join thousands of users building real-time connections with companions and friends.
               </p>
               <button
                 onClick={handleSignIn}
                 disabled={isSigningIn}
                 className="flex mx-auto min-w-[240px] cursor-pointer items-center justify-center gap-3 rounded-full h-16 px-10 bg-accent-pink text-white text-lg font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-accent-pink/30 disabled:opacity-50 relative z-10"
               >
-                {isSigningIn ? 'Creating your Echo...' : 'Create Your Echo'}
+                {isSigningIn ? 'Starting your Echo...' : 'Start Your Echo'}
               </button>
             </div>
           </section>
@@ -298,7 +445,7 @@ export default function LandingPage() {
                 Twitter
               </a>
             </div>
-            <p className="text-xs text-white/30">© 2024 Echo Intimacy. One choice, forever.</p>
+            <p className="text-xs text-white/30">© 2026 Echo Connection. All rights reserved.</p>
           </div>
         </footer>
       </div>

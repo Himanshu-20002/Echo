@@ -6,7 +6,11 @@ import { useEffect, useState } from 'react';
 import LandingPage from '@/components/landing-page';
 import { Sidebar } from '@/components/layout/sidebar';
 import { HomeDashboard } from '@/components/dashboard/home-dashboard';
+
+
+
 export default function LoginPage() {
+  
   const { user, loading } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);

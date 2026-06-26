@@ -26,7 +26,8 @@ import {
   Sparkles,
   HeartHandshake,
   Compass,
-  LogOut
+  LogOut,
+  Mic
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -570,6 +571,13 @@ export function HomeDashboard() {
           >
             <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
           </button>
+          <Link
+            href="/assistant"
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all text-white/60 hover:text-white group"
+            title="AI Voice Assistant"
+          >
+            <Mic className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
+          </Link>
         </div>
       </nav>
     </div>
