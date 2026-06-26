@@ -116,7 +116,7 @@ export default function LandingPage() {
 
         <main className="flex-1">
           {/* Hero Section */}
-          <section className="relative flex flex-col items-center justify-center px-4 md:px-6 lg:px-20 pt-28 md:pt-32 pb-12 md:pb-20 min-h-screen text-left overflow-hidden">
+          <section className="relative flex flex-col items-center justify-center px-6 md:px-10 lg:px-20 pt-28 md:pt-32 pb-12 md:pb-20 min-h-screen text-left overflow-hidden">
             <div className="mx-auto max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center relative z-10">
               
               {/* Left Column: Slogan & Rebranding */}
@@ -289,7 +289,7 @@ export default function LandingPage() {
           </section>
 
           {/* AI Companion & Connection Philosophy */}
-          <section id="philosophy" className="px-4 md:px-6 py-16 md:py-32 lg:px-20">
+          <section id="philosophy" className="px-6 md:px-10 py-16 md:py-32 lg:px-20">
             <div className="mx-auto max-w-7xl">
               <div className="grid grid-cols-1 gap-12 lg:gap-20 lg:grid-cols-2 lg:items-center">
                 <div>
@@ -339,7 +339,7 @@ export default function LandingPage() {
           </section>
 
           {/* Feature Grid */}
-          <section id="features" className="bg-surface-dark py-16 md:py-32 px-4 md:px-6">
+          <section id="features" className="bg-surface-dark py-16 md:py-32 px-6 md:px-10">
             <div className="mx-auto max-w-7xl">
               <div className="text-center mb-12 md:mb-20">
                 <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Interactive Features</h2>
@@ -371,7 +371,7 @@ export default function LandingPage() {
           </section>
 
           {/* Testimonial */}
-          <section className="py-16 md:py-32 px-4 md:px-6">
+          <section className="py-16 md:py-32 px-6 md:px-10">
             <div className="mx-auto max-w-4xl text-center">
               <div className="mb-8 md:mb-10 flex justify-center gap-1">
                 {[...Array(5)].map((_, i) => (
@@ -398,7 +398,7 @@ export default function LandingPage() {
           </section>
 
           {/* Final CTA */}
-          <section className="py-12 md:py-20 px-4 md:px-6">
+          <section className="py-12 md:py-20 px-6 md:px-10">
             <div className="mx-auto max-w-5xl rounded-xl bg-gradient-to-r from-accent-pink/30 to-background-dark border border-accent-pink/20 p-6 sm:p-12 lg:p-20 text-center overflow-hidden relative">
               <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-accent-pink/20 blur-[100px]"></div>
               <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-8 relative z-10">Ready to sync up?</h2>
@@ -417,7 +417,7 @@ export default function LandingPage() {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-white/10 bg-background-dark py-12 px-4 md:px-6">
+        <footer className="border-t border-white/10 bg-background-dark py-12 px-6 md:px-10">
           <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
             <div className="flex items-center gap-3 opacity-50">
               <Image
