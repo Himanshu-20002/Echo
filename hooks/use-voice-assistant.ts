@@ -16,7 +16,6 @@ export function useVoiceAssistant() {
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const socketRef = useRef<WebSocket | null>(null);
   const recognitionRef = useRef<any>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -24,6 +23,13 @@ export function useVoiceAssistant() {
   const welcomeSpokenRef = useRef(false);
   const hasInteractedRef = useRef(false);
   const pendingWelcomeTextRef = useRef<string | null>(null);
+
+  const messagesLengthRef = useRef(0);
+
+  // Sync messages length ref
+  useEffect(() => {
+    messagesLengthRef.current = messages.length;
+  }, [messages]);
 
   // Sync mute ref
   useEffect(() => {
@@ -102,7 +108,7 @@ export function useVoiceAssistant() {
         // Slice up to the current word boundary, plus some lookahead to get the next word space
         const nextSpace = cleanText.indexOf(' ', index);
         const visibleText = nextSpace === -1 ? cleanText : cleanText.slice(0, nextSpace);
-        
+
         setMessages(prev => {
           const newMessages = [...prev];
           const lastMsg = newMessages[newMessages.length - 1];
@@ -144,68 +150,26 @@ export function useVoiceAssistant() {
     synthesisRef.current.speak(utterance);
   }, []);
 
-  // Connect to WebSocket Server
+  // Connect to HTTP assistant endpoint
   const connect = useCallback(() => {
-    if (socketRef.current) return;
+    setStatus('idle');
+    setError(null);
+    console.log('Voice Assistant connected via API Routes');
 
-    const wsUrl = process.env.NEXT_PUBLIC_ASSISTANT_WS_URL || 'ws://localhost:3001';
-    const ws = new WebSocket(wsUrl);
-    socketRef.current = ws;
-
-    ws.onopen = () => {
-      if (socketRef.current !== ws) return;
-      setStatus('idle');
-      setError(null);
-      console.log('Voice Assistant WebSocket connected');
-    };
-
-    ws.onmessage = (event) => {
-      if (socketRef.current !== ws) return;
-      try {
-        const data = JSON.parse(event.data);
-
-        if (data.type === 'status') {
-          // Only update status if it's 'thinking' (server controls thinking state,
-          // client controls listening and speaking natively to prevent overwrite races)
-          if (data.status === 'thinking') {
-            setStatus('thinking');
-          }
-        } else if (data.type === 'done') {
-          const text = data.text;
-          if (messages.length === 0 && !hasInteractedRef.current) {
-            pendingWelcomeTextRef.current = text;
-          } else {
-            speakText(text);
-          }
-        } else if (data.type === 'error') {
-          setError(data.message);
-          console.error('Assistant error:', data.message);
-          setStatus('idle');
-        }
-      } catch (err) {
-        console.error('Error parsing WS message:', err);
+    // Trigger greeting if no message history exists (mimics server.js intro logic)
+    if (messagesLengthRef.current === 0 && !pendingWelcomeTextRef.current && !welcomeSpokenRef.current) {
+      const introText = "Hi, I'm Nora. Ask me how to find someone, make friends, or navigate the sanctuary!";
+      if (!hasInteractedRef.current) {
+        pendingWelcomeTextRef.current = introText;
+      } else {
+        speakText(introText);
+        welcomeSpokenRef.current = true;
+        pendingWelcomeTextRef.current = null;
       }
-    };
-
-    ws.onerror = (err) => {
-      if (socketRef.current !== ws) return;
-      console.error('WebSocket error:', err);
-      setError('Connection to assistant backend failed.');
-    };
-
-    ws.onclose = () => {
-      if (socketRef.current !== ws) return;
-      setStatus('disconnected');
-      socketRef.current = null;
-      console.log('Voice Assistant WebSocket disconnected');
-    };
+    }
   }, [speakText]);
 
   const disconnect = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.close();
-      socketRef.current = null;
-    }
     if (synthesisRef.current) {
       synthesisRef.current.cancel();
     }
@@ -215,25 +179,41 @@ export function useVoiceAssistant() {
     setStatus('disconnected');
   }, []);
 
-  // Send message over WebSocket
-  const sendMessage = useCallback((text: string) => {
-    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-      setError('Not connected to voice assistant.');
-      return;
+  // Send message over HTTP POST API
+  const sendMessage = useCallback(async (text: string) => {
+    setError(null);
+    setStatus('thinking');
+
+    const newUserMessage: ChatMessage = { role: 'user', content: text, timestamp: new Date() };
+    const updatedMessages = [...messages, newUserMessage];
+    setMessages(updatedMessages);
+
+    try {
+      const response = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: updatedMessages.map(m => ({ role: m.role, content: m.content }))
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const replyText = data.text;
+
+      speakText(replyText);
+    } catch (err: any) {
+      console.error('API Error:', err);
+      setError(err.message || 'Failed to get response from assistant.');
+      setStatus('idle');
     }
-
-    setMessages(prev => [
-      ...prev,
-      { role: 'user', content: text, timestamp: new Date() }
-    ]);
-
-    socketRef.current.send(
-      JSON.stringify({
-        type: 'user-message',
-        text
-      })
-    );
-  }, []);
+  }, [messages, speakText]);
 
   // Initialize Speech Recognition
   const startListening = useCallback(() => {
