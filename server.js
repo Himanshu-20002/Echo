@@ -84,25 +84,72 @@ wss.on('connection', (ws) => {
           return;
         }
 
-        try {
-          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemma-4-31b-it:free',
-              messages: chatHistory,
-              stream: true,
-              temperature: 0.7,
-              max_tokens: 150,
-            }),
-          });
+        const models = [
+          'google/gemma-4-31b-it:free',
+          'google/gemma-2-9b-it:free',
+          'qwen/qwen-2.5-7b-instruct:free',
+          'meta-llama/llama-3-8b-instruct:free'
+        ];
 
-          if (!response.ok) {
+        const parseOpenRouterError = (status, errText) => {
+          try {
+            const parsed = JSON.parse(errText);
+            const apiError = parsed.error || parsed;
+            let detail = '';
+            if (apiError.metadata && apiError.metadata.raw) {
+              detail = apiError.metadata.raw;
+              try {
+                const rawJson = JSON.parse(detail);
+                if (rawJson.error && rawJson.error.message) {
+                  detail = rawJson.error.message;
+                }
+              } catch (_) {}
+            } else if (apiError.message) {
+              detail = apiError.message;
+            }
+            if (detail) {
+              return detail;
+            }
+          } catch (_) {}
+          return `API error (${status}): ${errText.slice(0, 200)}`;
+        };
+
+        let response = null;
+        let lastErrorMsg = '';
+
+        for (const model of models) {
+          try {
+            response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: model,
+                messages: chatHistory,
+                stream: true,
+                temperature: 0.7,
+                max_tokens: 250, // Increased limit
+              }),
+            });
+
+            if (response.ok) {
+              break;
+            }
+
             const errText = await response.text();
-            throw new Error(`OpenRouter API error: ${response.status} - ${errText}`);
+            lastErrorMsg = parseOpenRouterError(response.status, errText);
+            console.warn(`Model ${model} failed with status ${response.status}: ${lastErrorMsg}. Trying fallback...`);
+          } catch (err) {
+            lastErrorMsg = err.message || 'Fetch failed';
+            console.warn(`Model ${model} request threw error: ${lastErrorMsg}. Trying fallback...`);
+          }
+        }
+
+        try {
+          if (!response || !response.ok) {
+            throw new Error(lastErrorMsg || 'All OpenRouter models failed.');
           }
 
           if (!response.body) {
