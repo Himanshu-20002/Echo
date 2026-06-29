@@ -14,6 +14,15 @@ import { Input } from '@/components/ui/input';
 export default function LandingPage() {
   const { signInWithGoogle } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleSignIn = async () => {
     try {
@@ -77,35 +86,55 @@ export default function LandingPage() {
 
       <div className="relative flex min-h-screen flex-col">
         {/* Top Navigation */}
-        <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-4 py-4 md:px-6 md:py-6 lg:px-20">
-          <div className="flex w-full max-w-7xl items-center justify-between glass-effect border border-white/10 px-4 py-2 md:px-8 md:py-3 rounded-full">
-            <div className="relative w-11 h-12 md:w-[62px] md:h-[72px] shrink-0">
-              <Image
-                alt="Echo Logo"
-                src="/echo_logo.png"
-                fill
-                priority
-                className="object-contain"
-                loading="eager"
-              />
+        <header className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-center transition-all duration-500 ease-out ${
+          scrolled 
+            ? 'px-4 py-2 md:px-6 md:py-3 lg:px-20 backdrop-blur-md bg-black/10' 
+            : 'px-4 py-4 md:px-6 md:py-6 lg:px-20'
+        }`}>
+          <div className={`flex w-full max-w-7xl items-center justify-between transition-all duration-500 ease-out border ${
+            scrolled 
+              ? 'glass-effect border-white/20 px-4 py-1.5 md:px-6 md:py-2 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.1)] scale-[0.98]' 
+              : 'bg-white/[0.02] border-white/10 px-4 py-2 md:px-8 md:py-3 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.4)]'
+          }`}>
+            <div className="relative group cursor-pointer shrink-0 transition-transform duration-300 hover:scale-105 active:scale-95">
+              <div className="absolute inset-0 bg-accent-pink/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className={`relative shrink-0 transition-all duration-500 ${
+                scrolled ? 'w-9 h-10 md:w-[48px] md:h-[56px]' : 'w-11 h-12 md:w-[62px] md:h-[72px]'
+              }`}>
+                <Image
+                  alt="Echo Logo"
+                  src="/echo_logo.png"
+                  fill
+                  priority
+                  className="object-contain transition-transform duration-700 group-hover:rotate-[360deg]"
+                  loading="eager"
+                />
+              </div>
             </div>
-            <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-white/70">
-              <a className="hover:text-accent-pink transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-accent-pink after:transition-all after:duration-300 pb-1" href="#philosophy">
+            
+            <nav className="hidden md:flex items-center gap-1.5 p-1 rounded-full bg-white/[0.03] border border-white/[0.05]">
+              <a className="px-4 py-1.5 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-300 relative group" href="#philosophy">
                 Philosophy
+                <span className="absolute bottom-1 left-4 right-4 h-[2px] bg-accent-pink scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
               </a>
-              <a className="hover:text-accent-pink transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-accent-pink after:transition-all after:duration-300 pb-1" href="#features">
+              <a className="px-4 py-1.5 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-300 relative group" href="#features">
                 The Lock
+                <span className="absolute bottom-1 left-4 right-4 h-[2px] bg-accent-pink scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
               </a>
-              <a className="hover:text-accent-pink transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-accent-pink after:transition-all after:duration-300 pb-1" href="#safety">
+              <a className="px-4 py-1.5 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-300 relative group" href="#safety">
                 Safety
+                <span className="absolute bottom-1 left-4 right-4 h-[2px] bg-accent-pink scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
               </a>
             </nav>
+
             <button
               onClick={handleSignIn}
               disabled={isSigningIn}
-              className="flex min-w-[100px] md:min-w-[120px] cursor-pointer items-center justify-center rounded-full h-9 md:h-10 px-4 md:px-6 bg-accent-pink text-white text-xs md:text-sm font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-accent-pink/20 disabled:opacity-50 shrink-0"
+              className="relative overflow-hidden group flex min-w-[100px] md:min-w-[120px] cursor-pointer items-center justify-center rounded-full h-9 md:h-10 px-4 md:px-6 bg-accent-pink text-white text-xs md:text-sm font-bold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(236,72,153,0.5)] active:scale-95 disabled:opacity-50 shrink-0"
             >
-              {isSigningIn ? 'Signing in...' : 'Get Started'}
+              {/* Dynamic hover gloss/shine sweep */}
+              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shine transition-transform duration-1000" />
+              <span className="relative z-10">{isSigningIn ? 'Signing in...' : 'Get Started'}</span>
             </button>
           </div>
         </header>
